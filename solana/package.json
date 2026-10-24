@@ -1,0 +1,18 @@
+{
+  "name": "four-corners-solana",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pact and Summit Stamp on Solana devnet (memo program, 4 co-signers)",
+  "scripts": {
+    "wallets": "node 01_make_wallets.mjs",
+    "airdrop": "node 02_airdrop.mjs",
+    "pact": "node pact.mjs",
+    "stamp": "node stamp.mjs",
+    "verify": "node verify.mjs",
+    "selftest": "node selftest.mjs"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.98.0"
+  }
+}
