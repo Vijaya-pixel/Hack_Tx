@@ -18,9 +18,13 @@ TypeScript API (Express). Live app state and the trip-health time series live in
 `CHAIN=mock` is for front-end work only: responses are labeled mock and the "blockchain" is an
 in-memory ledger that resets on restart. Never use it for the real demo.
 
+## Your keys go in `backend/.env`
+`npm start` reads `backend/.env` automatically (it is git-ignored, so it never gets committed).
+Copy `.env.example` to `.env` and fill in `DATABASE_URL`. Nothing else is required.
+
 ## TigerData setup
 1. Create a service at https://console.cloud.timescale.com (TigerData). Copy its connection string.
-2. `export DATABASE_URL="postgres://tsdbadmin:...@....tsdb.cloud.timescale.com:PORT/tsdb?sslmode=require"`
+2. Put it in `.env` as `DATABASE_URL=postgres://tsdbadmin:...@....tsdb.cloud.timescale.com:PORT/tsdb?sslmode=require`
 3. `npm start`. On startup the app creates its tables, turns `fc_score_events` into a hypertable,
    and tries to create the daily continuous aggregate `fc_score_daily`.
 4. If the connection fails on certificates, set `PGSSL=insecure` (hackathon use only).
