@@ -1,5 +1,5 @@
-// Countdown and nudge messages. Template-based so they always work; an AI (Muse Spark or
-// Snowflake AI_COMPLETE) can rewrite them later, but the facts here come from code.
+// Countdown and nudge messages. Template-based so they always work; an AI (such as Muse Spark)
+// can rewrite them later, but the facts here come from code.
 import { daysBetween } from './engine.ts';
 import type { Group, Nudge } from './types.ts';
 

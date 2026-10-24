@@ -1,9 +1,8 @@
-// Local scoring engine. It mirrors the Snowflake SQL (snowflake/01_setup.sql and the
-// query in snowflake.ts) so the app works with or without Snowflake.
+// Local scoring engine: distance, travel model, Trip Survival Score and plan ranking.
 import { CITIES } from './cities.ts';
 import type { City, Member, PlanInput, PlanRow, SuggestedPlan } from './types.ts';
 
-const R_KM = 6371; // Snowflake HAVERSINE uses km on a 6371 km sphere
+const R_KM = 6371; // mean Earth radius in km
 
 export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const rad = (x: number): number => (x * Math.PI) / 180;

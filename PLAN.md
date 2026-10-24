@@ -5,13 +5,13 @@ the trip is to actually happen, gets everyone to sign a pact, and stamps each re
 
 ## Challenges
 - Meta (sponsor track): Muse Spark for nudges, Muse Image for art (SVG fallback)
-- MLH Snowflake: decision engine (availability, fairness, Trip Survival Score)
+- MLH TigerData: live app state + trip-health time series (hypertable, continuous aggregate)
 - MLH Solana: four-signature Pact and Reunion Stamp (devnet)
 - MLH .tech: domain
-- Skipped: Gemini, TigerData, Toyota, Capital One, SerpApi
+- Skipped: Snowflake (dropped), Gemini, Toyota, Capital One, SerpApi
 
 ## Division of labor
-Snowflake decides. Meta tells the story. Solana makes it a promise.
+The backend decides (plain scoring code, no AI). TigerData remembers. Meta tells the story. Solana makes it a promise.
 
 ## Flow
 1. Enter name and code
@@ -23,8 +23,8 @@ Snowflake decides. Meta tells the story. Solana makes it a promise.
 ## Base Camp expeditions (features)
 | Expedition | What it does | Engine |
 |---|---|---|
-| Scout the Route | Each friend taps free weekends and travel limit; app finds the best weekend and city | Snowflake |
-| Summit Odds | Trip Survival Score, plus a smaller-plan suggestion | Snowflake (ML) |
+| Scout the Route | Each friend taps free weekends and travel limit; app finds the best weekend and city | Backend scoring |
+| Summit Odds | Trip Survival Score, plus a smaller-plan suggestion; trend chart of the score over time | Backend scoring + TigerData |
 | Plant the Flag | All four sign the Pact | Solana |
 | Countdown | Shared timer and nudges | Meta Spark |
 | Summit Stamp | After the trip, co-signed Reunion Stamp and streak | Solana |
@@ -37,16 +37,16 @@ Snowflake decides. Meta tells the story. Solana makes it a promise.
 - Pre-record a fallback demo video; pre-write one Solana transaction
 
 ## Fallbacks
-- No Muse access: Snowflake AI_COMPLETE writes nudges, SVG assembler draws characters
+- No Muse access: template nudges and rule-based traits (already built), SVG assembler draws characters
 - Solana devnet slow: show the pre-written transaction link
 
 ## Build order (cut from the bottom)
-1. Snowflake setup (done: snowflake/01_setup.sql)
+1. (dropped) Snowflake
 2. Solana pact and stamp scripts (done, TypeScript; devnet, memo program, 4 test keypairs)
-2b. Backend API (done, TypeScript; run `npm test` and `npm run typecheck` in backend/)
+2b. Backend API on TigerData (done, TypeScript; `npm test`, `npm run typecheck` in backend/)
 3. App shell: join flow, character reveal, Base Camp feed
 4. Expeditions: Scout the Route, Summit Odds, Plant the Flag
-5. Train Survival Score with Snowflake ML; Cortex AI explanations
+5. Optional: Muse for character art and nudge wording
 6. Countdown nudges, Summit Stamp, streak
 7. Polish, .tech domain, fallback video, write-up
 
