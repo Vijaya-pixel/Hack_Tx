@@ -1,0 +1,8 @@
+# dependencies and local state
+node_modules/
+data/
+.env
+
+# Solana test keys and receipts (never commit)
+solana/wallets.json
+solana/receipts.json
