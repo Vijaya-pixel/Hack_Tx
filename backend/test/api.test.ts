@@ -1,24 +1,33 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { createApp, upcomingWeekends } from '../src/server.mjs';
-import { createStore } from '../src/store.mjs';
-import { createFakeChain } from '../src/chain.mjs';
-import { survivalScore, haversineKm } from '../src/engine.mjs';
-import { fallbackTraits, parseTraits, makeCharacter } from '../src/character.mjs';
-import { findCity } from '../src/cities.mjs';
+import type { Server } from 'node:http';
+import { createApp, upcomingWeekends } from '../src/server.ts';
+import { createStore } from '../src/store.ts';
+import { createFakeChain } from '../src/chain.ts';
+import { survivalScore, haversineKm } from '../src/engine.ts';
+import { fallbackTraits, parseTraits, makeCharacter } from '../src/character.ts';
+import { findCity } from '../src/cities.ts';
 
 const TODAY = '2026-10-24';
-let server; let base; let chain;
+let server: Server;
+let base: string;
+let chain: ReturnType<typeof createFakeChain>;
+
+// Test responses are plain JSON; the tests assert on the fields they care about.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Body = any;
 
 before(async () => {
   chain = createFakeChain();
   const app = createApp({ store: createStore(), chain, today: () => TODAY, allowDemo: true, allowTamper: true });
-  await new Promise((res) => { server = app.listen(0, res); });
-  base = `http://127.0.0.1:${server.address().port}`;
+  await new Promise<void>((res) => { server = app.listen(0, () => res()); });
+  const addr = server.address();
+  if (!addr || typeof addr === 'string') throw new Error('no port');
+  base = `http://127.0.0.1:${addr.port}`;
 });
 after(() => server.close());
 
-const call = async (method, path, body, token) => {
+const call = async (method: string, path: string, body?: unknown, token?: string): Promise<{ status: number; body: Body }> => {
   const r = await fetch(base + path, {
     method, headers: { 'content-type': 'application/json', ...(token ? { 'x-member-token': token } : {}) },
     body: body ? JSON.stringify(body) : undefined,
@@ -49,8 +58,8 @@ test('engine basics: distance, scoring direction', () => {
 });
 
 test('city lookup handles aliases and rejects unknowns', () => {
-  assert.equal(findCity('NYC').name, 'New York');
-  assert.equal(findCity('austin, TX').name, 'Austin');
+  assert.equal(findCity('NYC')?.name, 'New York');
+  assert.equal(findCity('austin, TX')?.name, 'Austin');
   assert.equal(findCity('Atlantis'), null);
 });
 
@@ -58,7 +67,7 @@ test('upcoming weekends are Saturdays starting after today', () => {
   const w = upcomingWeekends(TODAY);
   assert.equal(w.length, 20);
   assert.equal(w[0], '2026-10-31');
-  assert.ok(w.every((d) => new Date(`${d}T00:00:00Z`).getUTCDay() === 6));
+  assert.ok(w.every((d: string) => new Date(`${d}T00:00:00Z`).getUTCDay() === 6));
 });
 
 test('characters: fallback is deterministic and valid; bad AI replies are rejected', async () => {
@@ -69,7 +78,7 @@ test('characters: fallback is deterministic and valid; bad AI replies are reject
   assert.equal(parseTraits('{"color":"blue"}'), null);
   assert.equal(parseTraits('not json'), null);
   const good = '{"color":"blue","hair":"short","accessory":"book","mood":"happy","pose":"waving","title":"the reader","tagline":"Reads everything."}';
-  assert.equal(parseTraits(`here you go: ${good}`).source, 'ai');
+  assert.equal(parseTraits(`here you go: ${good}`)?.source, 'ai');
   const viaBadLlm = await makeCharacter({ name: 'Kai', describe: 'x', city: 'Austin', vibe: 'food' }, { complete: async () => 'nonsense' });
   assert.equal(viaBadLlm.source, 'fallback');
   const viaCrashingLlm = await makeCharacter({ name: 'Kai', describe: 'x', city: 'Austin', vibe: 'food' }, { complete: async () => { throw new Error('down'); } });
@@ -104,7 +113,7 @@ test('a failed group creation leaves no orphan group behind', async () => {
 
 test('tokens: private data stays private and actions need the right token', async () => {
   const { code, token, group } = await newDemoGroup();
-  assert.ok(group.members.every((m) => m.token === undefined && m.lat === undefined), 'no tokens or coordinates in public view');
+  assert.ok(group.members.every((m: Body) => m.token === undefined && m.lat === undefined), 'no tokens or coordinates in public view');
   assert.equal((await call('POST', `/api/groups/${code}/availability`, { weekends: [] })).status, 401);
   assert.equal((await call('POST', `/api/groups/${code}/availability`, { weekends: [] }, 'wrong')).status, 401);
   assert.equal((await call('POST', `/api/groups/${code}/availability`, { weekends: ['2020-01-04'] }, token)).status, 400);
@@ -113,8 +122,8 @@ test('tokens: private data stays private and actions need the right token', asyn
 test('full flow: demo friends, scout, odds, pact, verify, stamp, nudges, feed', async () => {
   const { code, token, group } = await newDemoGroup();
   assert.equal(group.members.length, 4);
-  assert.deepEqual(group.members.map((m) => m.name).sort(), ['Arlo', 'Beck', 'Cyrus', 'Dante']);
-  assert.ok(group.members.every((m) => m.character && m.character.color));
+  assert.deepEqual(group.members.map((m: Body) => m.name).sort(), ['Arlo', 'Beck', 'Cyrus', 'Dante']);
+  assert.ok(group.members.every((m: Body) => m.character && m.character.color));
   assert.equal(group.stage, 'gathering');
 
   const scout = await call('GET', `/api/groups/${code}/scout`);
@@ -132,7 +141,7 @@ test('full flow: demo friends, scout, odds, pact, verify, stamp, nudges, feed', 
   const best = p[0];
   const odds = await call('GET', `/api/groups/${code}/odds?city=${encodeURIComponent(best.city)}&weekend=${best.weekend}&nights=4`);
   assert.equal(odds.status, 200);
-  assert.ok(odds.body.smaller.every((s) => s.survival > odds.body.current.survival), 'suggestions must improve the score');
+  assert.ok(odds.body.smaller.every((s: Body) => s.survival > odds.body.current.survival), 'suggestions must improve the score');
   assert.ok(odds.body.smaller.length > 0, 'a 4-night plan should have a smaller, better version');
   assert.equal((await call('GET', `/api/groups/${code}/odds?city=Atlantis&weekend=${best.weekend}`)).status, 400);
 
@@ -156,7 +165,7 @@ test('full flow: demo friends, scout, odds, pact, verify, stamp, nudges, feed', 
   assert.equal(caught.body.allSigned, true, 'signers are still fine, only the data changed');
 
   const nudges = await call('GET', `/api/groups/${code}/nudges?today=${TODAY}`);
-  assert.ok(nudges.body.some((n) => n.kind === 'countdown'));
+  assert.ok(nudges.body.some((n: Body) => n.kind === 'countdown'));
 
   const msg = await call('POST', `/api/groups/${code}/feed`, { text: 'Who is bringing snacks?' }, token);
   assert.equal(msg.status, 201);
@@ -184,7 +193,7 @@ test('stamp before pact is refused; scout before availability says who is pendin
   assert.equal(pending.body.ready, false);
   assert.deepEqual(pending.body.pending, ['Beck'], 'only the creator has not picked weekends');
   const nudges = await call('GET', `/api/groups/${code}/nudges`);
-  assert.ok(nudges.body.some((n) => n.kind === 'availability' && /Beck/.test(n.text)));
+  assert.ok(nudges.body.some((n: Body) => n.kind === 'availability' && /Beck/.test(n.text)));
 });
 
 test('travel limits are respected: a tiny limit makes far cities infeasible', async () => {
@@ -193,6 +202,6 @@ test('travel limits are respected: a tiny limit makes far cities infeasible', as
   await call('POST', `/api/groups/${code}/availability`, { weekends: [weekends[3], weekends[7]], maxTravelHours: 1 }, token);
   const scout = await call('GET', `/api/groups/${code}/scout`);
   assert.ok(scout.body.plans.length > 0);
-  const city = scout.body.plans.find((r) => r.city === 'Seattle' && r.weekend === weekends[3]);
+  const city = scout.body.plans.find((r: Body) => r.city === 'Seattle' && r.weekend === weekends[3]);
   assert.ok(!city || city.feasible === false, 'Seattle is not feasible with a 1 hour limit for Beck');
 });

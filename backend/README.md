@@ -1,6 +1,7 @@
 # Four Corners backend
 
     npm install
+    npm run typecheck                # TypeScript, strict mode
     npm test                         # 12 tests, no network needed
     CHAIN=mock npm start             # front-end development (responses flagged "mock", never use for the real demo)
     npm start                        # real Solana devnet (needs ../solana wallets + airdrop)

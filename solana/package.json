@@ -5,14 +5,20 @@
   "type": "module",
   "description": "Pact and Summit Stamp on Solana devnet (memo program, 4 co-signers)",
   "scripts": {
-    "wallets": "node 01_make_wallets.mjs",
-    "airdrop": "node 02_airdrop.mjs",
-    "pact": "node pact.mjs",
-    "stamp": "node stamp.mjs",
-    "verify": "node verify.mjs",
-    "selftest": "node selftest.mjs"
+    "wallets": "tsx 01_make_wallets.ts",
+    "airdrop": "tsx 02_airdrop.ts",
+    "pact": "tsx pact.ts",
+    "stamp": "tsx stamp.ts",
+    "verify": "tsx verify.ts",
+    "selftest": "tsx selftest.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@solana/web3.js": "^1.98.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
   }
 }

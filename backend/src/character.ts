@@ -1,6 +1,8 @@
 // Turns "what describes you?" + two answers into an original cartoon character spec.
 // The spec is traits only. The frontend draws it in the app's own style (SVG), and an image
 // model can be added later. Users never edit the result.
+import type { Character, Llm } from './types.ts';
+
 export const COLORS = ['blue', 'orange', 'green', 'purple', 'red', 'teal', 'yellow', 'pink'];
 export const HAIR = ['short', 'curly', 'buzz', 'long', 'bun', 'cap', 'none'];
 export const ACCESSORIES = ['coffee cup', 'clipboard', 'headphones', 'backpack', 'chef hat',
@@ -9,11 +11,11 @@ export const MOODS = ['relaxed', 'excited', 'happy', 'cool', 'bold'];
 export const POSES = ['waving', 'thinking', 'jumping', 'leaning'];
 export const VIBES = ['chill', 'adventure', 'food', 'nightlife', 'outdoors'];
 
-const VIBE_MOOD = { chill: 'relaxed', adventure: 'excited', food: 'happy', nightlife: 'cool', outdoors: 'bold' };
-const VIBE_POSE = { chill: 'leaning', adventure: 'jumping', food: 'waving', nightlife: 'leaning', outdoors: 'jumping' };
+const VIBE_MOOD: Record<string, string> = { chill: 'relaxed', adventure: 'excited', food: 'happy', nightlife: 'cool', outdoors: 'bold' };
+const VIBE_POSE: Record<string, string> = { chill: 'leaning', adventure: 'jumping', food: 'waving', nightlife: 'leaning', outdoors: 'jumping' };
 
 // keyword -> [accessory, title]
-const KEYWORDS = [
+const KEYWORDS: [RegExp, string, string][] = [
   [/\b(plan|organi[sz]|schedule|list|spreadsheet|lead)/i, 'clipboard', 'the planner'],
   [/\b(coffee|latte|espresso|cafe)/i, 'coffee cup', 'the coffee fan'],
   [/\b(music|song|band|playlist|concert)/i, 'headphones', 'the music head'],
@@ -26,11 +28,13 @@ const KEYWORDS = [
   [/\b(run|gym|sport|soccer|basketball|football|fit)/i, 'sneakers', 'the athlete'],
 ];
 
-const hash = (s) => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
-const pick = (arr, seed) => arr[hash(seed) % arr.length];
+const hash = (s: string): number => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+const pick = <T,>(arr: readonly T[], seed: string): T => arr[hash(seed) % arr.length];
 
 // Deterministic fallback: works with no AI at all.
-export function fallbackTraits({ name, describe, vibe }) {
+export interface CharacterInput { name: string; describe: string; city: string; vibe: string }
+
+export function fallbackTraits({ name, describe, vibe }: Pick<CharacterInput, 'name' | 'describe' | 'vibe'>): Character {
   const text = `${describe || ''}`;
   const hit = KEYWORDS.find(([re]) => re.test(text));
   const accessory = hit ? hit[1] : pick(ACCESSORIES, `${name}acc`);
@@ -49,7 +53,7 @@ export function fallbackTraits({ name, describe, vibe }) {
 }
 
 // The prompt an LLM gets. Guardrail: original characters only.
-export function traitPrompt({ name, describe, city, vibe }) {
+export function traitPrompt({ name, describe, city, vibe }: CharacterInput): string {
   return [
     'You design ORIGINAL cartoon characters for a friendship app. Never copy or resemble an existing',
     'character, brand mascot or real person, even if the user asks. Reply with JSON only, no prose.',
@@ -60,24 +64,24 @@ export function traitPrompt({ name, describe, city, vibe }) {
   ].join('\n');
 }
 
-const inSet = (v, set) => set.includes(v);
+const inSet = (v: unknown, set: readonly string[]): boolean => typeof v === 'string' && set.includes(v);
 
 // Accept an LLM reply only if every field is valid; otherwise null.
-export function parseTraits(text) {
+export function parseTraits(text: string): Character | null {
   try {
     const start = text.indexOf('{');
     const end = text.lastIndexOf('}');
-    const t = JSON.parse(text.slice(start, end + 1));
+    const t = JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
     const ok = inSet(t.color, COLORS) && inSet(t.hair, HAIR) && inSet(t.accessory, ACCESSORIES)
       && inSet(t.mood, MOODS) && inSet(t.pose, POSES)
       && typeof t.title === 'string' && t.title.length <= 30
       && typeof t.tagline === 'string' && t.tagline.length <= 100;
-    return ok ? { ...t, source: 'ai' } : null;
+    return ok ? { ...(t as unknown as Character), source: 'ai' } : null;
   } catch { return null; }
 }
 
 // llm is optional: { complete(prompt) -> Promise<string> }
-export async function makeCharacter(input, llm) {
+export async function makeCharacter(input: CharacterInput, llm?: Llm | null): Promise<Character> {
   if (llm) {
     try {
       const reply = await llm.complete(traitPrompt(input));
