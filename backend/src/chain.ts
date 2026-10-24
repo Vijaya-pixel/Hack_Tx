@@ -5,17 +5,18 @@
 //   explorer(signature)                 -> url
 // Three implementations: real Solana devnet, a fake for tests, and a clearly labeled mock.
 import { randomBytes } from 'node:crypto';
+import type { Chain, MemoCheck, SentMemo } from './types.ts';
 
-export function createSolanaChain() {
+export function createSolanaChain(): Chain {
   // Imported lazily so the server still starts if the solana folder is missing.
-  const libPromise = import('../../solana/lib.mjs');
+  const libPromise = import('../../solana/lib.ts');
   return {
     kind: 'solana-devnet',
-    async signerKeys(count) {
+    async signerKeys(count: number): Promise<string[]> {
       const lib = await libPromise;
       return lib.loadWallets().slice(0, count).map((w) => w.keypair.publicKey.toBase58());
     },
-    async sendMemo({ memo, count }) {
+    async sendMemo({ memo, count }: { memo: string; count: number }): Promise<SentMemo> {
       const lib = await libPromise;
       const wallets = lib.loadWallets().slice(0, count);
       if (wallets.length < count) throw new Error(`Need ${count} wallets, found ${wallets.length}`);
@@ -27,39 +28,31 @@ export function createSolanaChain() {
         custody: 'demo-server-wallets',
       };
     },
-    async checkMemo({ signature, expectedMemo, requiredSigners }) {
+    async checkMemo({ signature, expectedMemo, requiredSigners }: { signature: string; expectedMemo: string; requiredSigners: string[] }): Promise<MemoCheck> {
       const lib = await libPromise;
-      const tx = await lib.getConnection().getParsedTransaction(signature, {
-        commitment: 'confirmed', maxSupportedTransactionVersion: 0,
-      });
-      if (!tx) return { found: false, memoMatches: false, allSigned: false };
-      const signers = tx.transaction.message.accountKeys.filter((k) => k.signer).map((k) => k.pubkey.toBase58());
-      const memoIx = tx.transaction.message.instructions.find((i) => i.program === 'spl-memo');
-      return {
-        found: true,
-        memoMatches: (memoIx?.parsed ?? '') === expectedMemo,
-        allSigned: requiredSigners.every((s) => signers.includes(s)),
-      };
+      return lib.checkMemoOnChain({ signature, expectedMemo, requiredSigners });
     },
-    explorer: (signature) => `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
+    explorer: (signature: string) => `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
   };
 }
 
 // In-memory chain for tests: stores memos and signers, supports the same checks.
-export function createFakeChain() {
-  const ledger = new Map();
-  const keyFor = (n) => Array.from({ length: n }, (_, i) => `FakeWallet${i + 1}`);
+export interface FakeChain extends Chain { ledger: Map<string, { memo: string; signers: string[] }> }
+
+export function createFakeChain(): FakeChain {
+  const ledger = new Map<string, { memo: string; signers: string[] }>();
+  const keyFor = (n: number): string[] => Array.from({ length: n }, (_, i) => `FakeWallet${i + 1}`);
   return {
     kind: 'fake',
     ledger,
-    async signerKeys(count) { return keyFor(count); },
-    async sendMemo({ memo, count }) {
+    async signerKeys(count: number): Promise<string[]> { return keyFor(count); },
+    async sendMemo({ memo, count }: { memo: string; count: number }) {
       const signature = `FAKE${randomBytes(8).toString('hex')}`;
       const signers = keyFor(count);
       ledger.set(signature, { memo, signers });
       return { signature, signers, custody: 'fake' };
     },
-    async checkMemo({ signature, expectedMemo, requiredSigners }) {
+    async checkMemo({ signature, expectedMemo, requiredSigners }: { signature: string; expectedMemo: string; requiredSigners: string[] }) {
       const rec = ledger.get(signature);
       if (!rec) return { found: false, memoMatches: false, allSigned: false };
       return {
@@ -68,18 +61,18 @@ export function createFakeChain() {
         allSigned: requiredSigners.every((s) => rec.signers.includes(s)),
       };
     },
-    explorer: (signature) => `fake://${signature}`,
+    explorer: (signature: string) => `fake://${signature}`,
   };
 }
 
 // Mock chain for front-end development only. Responses are flagged mock:true and the UI
 // must show a "simulated" label. Never use this for the real demo.
-export function createMockChain() {
+export function createMockChain(): Chain {
   const fake = createFakeChain();
   return {
     ...fake,
     kind: 'mock',
-    async sendMemo(args) { return { ...(await fake.sendMemo(args)), custody: 'mock-simulated' }; },
-    explorer: (signature) => `mock://simulated/${signature}`,
+    async sendMemo(args: { memo: string; count: number }) { return { ...(await fake.sendMemo(args)), custody: 'mock-simulated' }; },
+    explorer: (signature: string) => `mock://simulated/${signature}`,
   };
 }

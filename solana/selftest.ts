@@ -1,9 +1,12 @@
 // Offline test: builds and checks a 4-signer memo transaction WITHOUT using the network.
 import { Keypair } from '@solana/web3.js';
-import { buildMemoTx, fingerprint, canonical, MEMO_PROGRAM_ID } from './lib.mjs';
+import { buildMemoTx, fingerprint, canonical, MEMO_PROGRAM_ID } from './lib.ts';
 
 let failures = 0;
-const check = (label, ok) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}`); if (!ok) failures++; };
+const check = (label: string, ok: boolean): void => {
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}`);
+  if (!ok) failures++;
+};
 
 const keypairs = [1, 2, 3, 4].map(() => Keypair.generate());
 const payload = { type: 'pact', city: 'Nashville', weekend: '2026-11-14',
@@ -16,10 +19,8 @@ check('changing one field changes the fingerprint',
 check('canonical is stable', canonical({ z: [1, { y: 2, x: 1 }] }) === '{"z":[1,{"x":1,"y":2}]}');
 
 const memo = `FC1|pact|${fingerprint(payload)}`;
-const tx = buildMemoTx({
-  memo, keypairs,
-  blockhash: '11111111111111111111111111111111', lastValidBlockHeight: 1,
-});
+const args = { memo, keypairs, blockhash: '11111111111111111111111111111111', lastValidBlockHeight: 1 };
+const tx = buildMemoTx(args);
 
 check('transaction has 4 signatures', tx.signatures.length === 4);
 check('all four signatures are valid', tx.verifySignatures());
@@ -30,11 +31,9 @@ check('memo text is on the transaction', ix.data.toString('utf8') === memo);
 check('serialized size fits in a transaction (<1232 bytes)', tx.serialize().length < 1232);
 
 // tamper test: a changed signature must fail verification
-const tampered = buildMemoTx({
-  memo, keypairs,
-  blockhash: '11111111111111111111111111111111', lastValidBlockHeight: 1,
-});
-tampered.signatures[2].signature[0] ^= 0xff;
+const tampered = buildMemoTx(args);
+const sig = tampered.signatures[2].signature;
+if (sig) sig[0] ^= 0xff;
 check('a tampered signature is rejected', !tampered.verifySignatures());
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll offline checks passed');

@@ -1,6 +1,6 @@
 // Summit Stamp: after the trip, all four confirm "we made it". Usage:
-//   node stamp.mjs            (links to the most recent pact)
-import { loadWallets, loadReceipts, fingerprint, sendCoSigned, saveReceipt, explorerUrl } from './lib.mjs';
+//   npx tsx stamp.ts            (links to the most recent pact)
+import { loadWallets, loadReceipts, fingerprint, sendCoSigned, saveReceipt, explorerUrl } from './lib.ts';
 
 const receipts = loadReceipts();
 const pact = [...receipts].reverse().find((r) => r.type === 'pact');

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PLAN_SQL, PLAN_BINDS } from '../src/snowflake.mjs';
+import { PLAN_SQL, PLAN_BINDS } from '../src/snowflake.ts';
 
 test('plan query bind order matches the placeholders in the SQL', () => {
   const parts = PLAN_SQL.split('?');

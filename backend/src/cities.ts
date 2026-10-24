@@ -1,5 +1,7 @@
 // Home cities and candidate meeting cities (US). Coordinates are approximate city centers.
-const RAW = [
+import type { City } from './types.ts';
+
+const RAW: [string, number, number][] = [
   ['Seattle', 47.6062, -122.3321], ['Portland', 45.5152, -122.6784],
   ['San Francisco', 37.7749, -122.4194], ['Los Angeles', 34.0522, -118.2437],
   ['San Diego', 32.7157, -117.1611], ['Las Vegas', 36.1699, -115.1398],
@@ -22,17 +24,17 @@ const RAW = [
   ['Louisville', 38.2527, -85.7585], ['Birmingham', 33.5186, -86.8104],
 ];
 
-export const CITIES = RAW.map(([name, lat, lon]) => ({ name, lat, lon }));
+export const CITIES: City[] = RAW.map(([name, lat, lon]) => ({ name, lat, lon }));
 
-const ALIASES = { nyc: 'New York', dc: 'Washington DC', 'washington d.c.': 'Washington DC',
+const ALIASES: Record<string, string> = { nyc: 'New York', dc: 'Washington DC', 'washington d.c.': 'Washington DC',
   sf: 'San Francisco', la: 'Los Angeles', 'saint louis': 'St. Louis', 'st louis': 'St. Louis',
   'kc': 'Kansas City', 'slc': 'Salt Lake City', 'nola': 'New Orleans', 'vegas': 'Las Vegas' };
 
-const norm = (s) => String(s).toLowerCase().replace(/,.*$/, '').replace(/\s+/g, ' ').trim();
+const norm = (s: string): string => String(s).toLowerCase().replace(/,.*$/, '').replace(/\s+/g, ' ').trim();
 const BY_KEY = new Map(CITIES.map((c) => [norm(c.name), c]));
 
-export function findCity(input) {
+export function findCity(input: unknown): City | null {
   if (!input) return null;
-  const key = norm(input);
+  const key = norm(String(input));
   return BY_KEY.get(key) || BY_KEY.get(norm(ALIASES[key] || '')) || null;
 }

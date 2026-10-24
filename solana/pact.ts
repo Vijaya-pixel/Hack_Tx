@@ -1,8 +1,8 @@
 // Plant the Flag: all four friends sign the same trip pact. Usage:
-//   node pact.mjs --city Nashville --weekend 2026-11-14 --group "Four Corners"
-import { loadWallets, fingerprint, sendCoSigned, saveReceipt, explorerUrl } from './lib.mjs';
+//   npx tsx pact.ts --city Nashville --weekend 2026-11-14 --group "Four Corners"
+import { loadWallets, fingerprint, sendCoSigned, saveReceipt, explorerUrl } from './lib.ts';
 
-const arg = (name, fallback) => {
+const arg = (name: string, fallback: string): string => {
   const i = process.argv.indexOf(`--${name}`);
   return i > -1 ? process.argv[i + 1] : fallback;
 };

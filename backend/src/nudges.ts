@@ -1,9 +1,10 @@
 // Countdown and nudge messages. Template-based so they always work; an AI (Muse Spark or
 // Snowflake AI_COMPLETE) can rewrite them later, but the facts here come from code.
-import { daysBetween } from './engine.mjs';
+import { daysBetween } from './engine.ts';
+import type { Group, Nudge } from './types.ts';
 
-export function buildNudges(group, today) {
-  const out = [];
+export function buildNudges(group: Group, today: string): Nudge[] {
+  const out: Nudge[] = [];
   const missing = group.members.filter((m) => !(group.availability[m.id] || []).length);
   for (const m of missing) {
     out.push({ kind: 'availability', to: m.id,

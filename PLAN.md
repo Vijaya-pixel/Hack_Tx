@@ -42,7 +42,8 @@ Snowflake decides. Meta tells the story. Solana makes it a promise.
 
 ## Build order (cut from the bottom)
 1. Snowflake setup (done: snowflake/01_setup.sql)
-2. Solana pact and stamp scripts (devnet, memo program, 4 test keypairs)
+2. Solana pact and stamp scripts (done, TypeScript; devnet, memo program, 4 test keypairs)
+2b. Backend API (done, TypeScript; run `npm test` and `npm run typecheck` in backend/)
 3. App shell: join flow, character reveal, Base Camp feed
 4. Expeditions: Scout the Route, Summit Odds, Plant the Flag
 5. Train Survival Score with Snowflake ML; Cortex AI explanations

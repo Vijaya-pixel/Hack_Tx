@@ -1,6 +1,7 @@
 // Checks a receipt against the chain: right fingerprint AND all four signers.
-// Usage: node verify.mjs [signature]   (defaults to the most recent receipt)
-import { getConnection, loadReceipts, fingerprint, explorerUrl } from './lib.mjs';
+// Usage: npx tsx verify.ts [signature]   (defaults to the most recent receipt)
+import type { ParsedInstruction, PartiallyDecodedInstruction } from '@solana/web3.js';
+import { getConnection, loadReceipts, fingerprint, explorerUrl } from './lib.ts';
 
 const receipts = loadReceipts();
 const wanted = process.argv[2];
@@ -14,8 +15,10 @@ const tx = await connection.getParsedTransaction(receipt.signature, {
 if (!tx) { console.log('NOT FOUND on chain'); process.exit(1); }
 
 const signers = tx.transaction.message.accountKeys.filter((k) => k.signer).map((k) => k.pubkey.toBase58());
-const memoIx = tx.transaction.message.instructions.find((i) => i.program === 'spl-memo');
-const onChainMemo = memoIx?.parsed ?? '';
+const isMemo = (i: ParsedInstruction | PartiallyDecodedInstruction): i is ParsedInstruction =>
+  'program' in i && i.program === 'spl-memo';
+const memoIx = tx.transaction.message.instructions.find(isMemo);
+const onChainMemo = typeof memoIx?.parsed === 'string' ? memoIx.parsed : '';
 const recomputed = fingerprint(receipt.payload);
 const expectedMemo = `FC1|${receipt.type}|${recomputed}`;
 
