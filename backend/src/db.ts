@@ -1,4 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 
 // Database access. The app only needs two things: run a query, get rows back.
 // Both the `pg` driver and PGlite (used in tests) fit this shape.
@@ -14,8 +16,11 @@ type Env = Record<string, string | undefined>;
 //   PGSSL=insecure accepts any certificate. Encrypted, but the server is not authenticated, so use it only for quick tests.
 // With either setting, any sslmode in the URL is dropped so it cannot override these choices.
 export function sslSettings(connectionString: string, env: Env): { connectionString: string; ssl?: { ca?: string; rejectUnauthorized: boolean } } {
+  // A TigerData host with no PGSSL_CA_PATH set uses the Timescale CA saved at ~/.tiger/timescale-ca.pem, if that file exists.
+  const tigerCa = join(homedir(), '.tiger', 'timescale-ca.pem');
+  const caPath = env.PGSSL_CA_PATH || (/@[^/]*\.tsdb\.cloud\.timescale\.com(:\d+)?\//.test(connectionString) && existsSync(tigerCa) ? tigerCa : '');
   const ssl = env.PGSSL === 'insecure' ? { rejectUnauthorized: false }
-    : env.PGSSL_CA_PATH ? { ca: readFileSync(env.PGSSL_CA_PATH, 'utf8'), rejectUnauthorized: true } : undefined;
+    : caPath ? { ca: readFileSync(caPath, 'utf8'), rejectUnauthorized: true } : undefined;
   if (!ssl) return { connectionString };
   return { connectionString: connectionString.replace(/([?&])sslmode=[^&]*&?/, '$1').replace(/[?&]$/, ''), ssl };
 }
