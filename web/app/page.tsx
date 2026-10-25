@@ -36,7 +36,7 @@ export default function Home() {
     <div className="space-y-24 md:space-y-32">
       {/* Hero: full-width pixel landscape under the nav, with the car driving across it (no box around it) */}
       <section className="relative left-1/2 -mt-8 w-screen -translate-x-1/2">
-        <div className="scene-sky relative h-[600px] overflow-hidden md:h-[680px]">
+        <div className="scene-sky relative h-[calc(100svh-4.75rem)] min-h-[600px] overflow-hidden md:min-h-[640px]">
           <PixelScene />
           <div className="relative z-10 mx-auto max-w-[1360px] px-4 pt-10 md:px-8 md:pt-14">
             <p className="label !text-white/85">{c ? `Hi, ${c.name.split(' ')[0]}` : 'Welcome'}</p>
