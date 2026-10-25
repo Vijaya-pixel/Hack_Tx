@@ -6,17 +6,17 @@
   "scripts": {
     "start": "tsx --env-file-if-exists=.env src/server.ts",
     "test": "node --import tsx --test \"test/*.test.ts\"",
-    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
-    "gemini:check": "tsx --env-file-if-exists=.env scripts/check-gemini.ts"
+    "typecheck": "tsc --noEmit",
+    "snowflake:setup": "tsx --env-file-if-exists=.env scripts/snowflake-setup.ts",
+    "snowflake:check": "tsx --env-file-if-exists=.env scripts/snowflake-check.ts"
   },
   "dependencies": {
     "express": "^4.21.0",
-    "pg": "^8.23.1"
+    "pg": "^8.23.1",
+    "snowflake-sdk": "^3.4.0"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.11",
-    "@electric-sql/pglite-socket": "^0.2.14",
-    "@solana/web3.js": "^1.99.0",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.5",
     "@types/pg": "^8.23.1",
