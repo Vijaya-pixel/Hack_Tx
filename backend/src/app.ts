@@ -11,7 +11,7 @@ import { withPayment } from './customers.ts';
 import type { Customer, CustomerRepo, HardshipKind } from './customers.ts';
 import { explain, PRESETS } from './explain.ts';
 import type { Llm, Preset } from './explain.ts';
-import { answerFromFacts, MAX_QUESTION, parseIntent, refusal } from './chat.ts';
+import { answerFromFacts, MAX_QUESTION, parseIntent, refusal, smalltalk } from './chat.ts';
 
 export interface Deps {
   store: Store;
@@ -194,6 +194,8 @@ export function createApp(deps: Deps) {
     const message = typeof body.message === 'string' ? body.message.trim() : '';
     if (!message) throw new HttpError(400, 'message is required');
     if (message.length > MAX_QUESTION) throw new HttpError(400, `message must be at most ${MAX_QUESTION} characters`);
+    const chat = smalltalk(message, (await customer()).name.split(' ')[0]);
+    if (chat) return void res.json(chat);
     const llm = llms[0] ?? null;
     const intent = await parseIntent(llm, message);
     if (!intent.onTopic) return void res.json(refusal());

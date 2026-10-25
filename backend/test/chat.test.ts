@@ -58,6 +58,25 @@ describe('intent', () => {
   });
 });
 
+describe('greetings and small talk', () => {
+  test('hi, thanks, bye and "what can you do" get a friendly reply, with no AI call', async () => {
+    const g = fakeGemini();
+    const t = await start(g.llm);
+    try {
+      const hi = (await t.ask('hi')).body;
+      assert.equal(hi.source, 'smalltalk');
+      assert.match(hi.text, /^Hi Vijay!/);
+      assert.equal((await t.ask('Hello there!')).body.source, 'smalltalk');
+      assert.equal((await t.ask('thanks!')).body.source, 'smalltalk');
+      assert.equal((await t.ask('bye')).body.source, 'smalltalk');
+      assert.match((await t.ask('What can you do?')).body.text, /monthly payment/);
+      assert.equal(g.calls.length, 0);
+      // a real off-topic question is still refused
+      assert.equal((await t.ask('Tell me a joke about cats')).body.source, 'refusal');
+    } finally { t.close(); }
+  });
+});
+
 describe('chat endpoint with Gemini', () => {
   let t: Awaited<ReturnType<typeof start>>; let g: ReturnType<typeof fakeGemini>;
   before(async () => { g = fakeGemini(); t = await start(g.llm); });

@@ -103,7 +103,7 @@ function answerPrompt(question: string, facts: string[]): string {
 
 export interface ChatReply {
   text: string;
-  source: 'gemini' | 'standard' | 'refusal';
+  source: 'gemini' | 'standard' | 'refusal' | 'smalltalk';
   label: string;
   onTopic: boolean;
   extraPerWeek: number | null;
@@ -111,6 +111,23 @@ export interface ChatReply {
 }
 
 export const REFUSAL_LABEL = 'Out of scope';
+
+// Greetings, thanks, goodbyes and "what can you do?" get a friendly fixed reply. No AI call, and nothing is refused.
+const SMALLTALK: { test: RegExp; reply: (name: string) => string }[] = [
+  { test: /^(hi|hello|hey|hiya|howdy|yo|sup|good (morning|afternoon|evening))( there| gear| everyone)?\W*$/i,
+    reply: (n) => `Hi${n ? ` ${n}` : ''}! I'm Gear, your RoundGear loan guide. Ask me about your loan, your car payments or your round-ups, or tap one of the suggestions above.` },
+  { test: /^how are you\b/i, reply: () => "I'm doing great, thanks for asking! Ask me about your loan, your car payments or your round-ups." },
+  { test: /^(thanks|thank you|thx|ty|cheers)\b/i, reply: () => "You're welcome! Ask me anything else about your loan or your round-ups." },
+  { test: /^(bye|goodbye|see you|see ya|cya)\b/i, reply: () => 'See you! Your round-ups keep adding up in the background.' },
+  { test: /^(who are you|what are you|what can you do|what do you do|what can i ask|how do you work|what is this|help|how does this work)\b/i,
+    reply: () => 'I\'m Gear, RoundGear\'s loan guide, powered by Google Gemini. I can explain your monthly payment, how much time and interest your round-ups save, what happens if you add an amount like "$30 a week", and your recent purchases. I only answer questions about your loan, your car and your data in this app.' },
+];
+
+export function smalltalk(message: string, firstName = ''): ChatReply | null {
+  const m = message.trim();
+  for (const s of SMALLTALK) if (s.test.test(m)) return { text: s.reply(firstName), source: 'smalltalk', label: 'Gear', onTopic: true, extraPerWeek: null };
+  return null;
+}
 
 export function refusal(): ChatReply {
   return { text: REFUSAL, source: 'refusal', label: REFUSAL_LABEL, onTopic: false, extraPerWeek: null };

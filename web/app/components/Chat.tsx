@@ -12,7 +12,7 @@ const QUESTIONS: { id: Preset; text: string; icon: LucideIcon }[] = [
 ];
 
 interface Msg { id: number; role: 'user' | 'assistant'; text: string; label?: string; ai?: boolean; muted?: boolean; why?: string; loading?: boolean }
-interface ChatResult { text: string; source: 'gemini' | 'standard' | 'refusal'; label: string; rejected?: string }
+interface ChatResult { text: string; source: 'gemini' | 'standard' | 'refusal' | 'smalltalk'; label: string; rejected?: string }
 
 // A chat-style page. The questions are fixed presets, so every answer comes from /api/explain,
 // where the numbers are computed by the backend and checked before they are shown.
