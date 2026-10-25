@@ -5,7 +5,7 @@
   --page: #f6f1e7; --card: #fffdf7; --panel: #ffffff; --soft: #efe8d8; --ink: #14141a; --grey: #6d6a63;
   --line: #cfc6b2; --edge: #14141a; --track: #d9d0bb; --fill: #14141a; --onfill: #ffffff; --hover: #e8dfca;
   --stdline: #9a948a; --chart: #2f6bff; --grid: rgba(20, 20, 26, 0.05);
-  --sky1: #3b7bcb; --sky2: #4a8fd6; --sky3: #5fb3e0; --sky4: #7fd0ea; --sky5: #aee9f2; --sun: #ffd84a; --sun-edge: #a8691f; --road: #3a3a44; --star: transparent;
+  --sky1: #3b7bcb; --sky2: #4a8fd6; --sky3: #5fb3e0; --sky4: #7fd0ea; --sky5: #aee9f2; --sun: #ffd84a; --sun-hi: #fff0a0; --crater: #f0b923; --sun-edge: #a8691f; --road: #3a3a44; --star: transparent;
   --cloud1: #f2fcff; --cloud2: #b9e6f2; --mtn-far: #5aa8b8; --mtn-far-hi: #8ccbd2; --mtn-far-sh: #4a8fa0; --mtn-near: #2f5f6b; --mtn-near-hi: #5f9a7a; --mtn-near-sh: #24505a;
   color-scheme: light;
 }
@@ -14,7 +14,7 @@
   --line: #3a3f66; --edge: #e9e4d6; --track: #3a3f66; --fill: #f4f1ea; --onfill: #14141a; --hover: #343960;
   --stdline: #7c80a6; --chart: #5aa0ff; --grid: rgba(255, 255, 255, 0.045);
   /* Night scene: starts at a deep blue (not black), with a moon, stars, dim clouds and dark mountains. */
-  --sky1: #14307a; --sky2: #1a3f90; --sky3: #234fa3; --sky4: #2f63b6; --sky5: #4580c8; --sun: #f4f1ea; --sun-edge: #cfc7b4; --road: #14141c; --star: #ffffff;
+  --sky1: #14307a; --sky2: #1a3f90; --sky3: #234fa3; --sky4: #2f63b6; --sky5: #4580c8; --sun: #f4f1ea; --sun-hi: #ffffff; --crater: #cfc8b6; --sun-edge: #aeb7d6; --road: #14141c; --star: #ffffff;
   --cloud1: #5873c4; --cloud2: #3f58a6; --mtn-far: #1b3a73; --mtn-far-hi: #2f5a9a; --mtn-far-sh: #142d5c; --mtn-near: #0c2247; --mtn-near-hi: #204a80; --mtn-near-sh: #081a38;
   color-scheme: dark;
 }

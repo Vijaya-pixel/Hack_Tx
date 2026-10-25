@@ -19,11 +19,49 @@ function Cloud({ n, top, delay, duration, width }: { n: number; top: string; del
   );
 }
 
+// A round pixel-art moon (or sun in the light theme): an outlined disc with a lit rim and a few craters.
+const ORB = 21;
+const ORB_RECTS = (() => {
+  const c = ORB / 2;
+  const rects: { x: number; y: number; w: number; fill: string }[] = [];
+  const craters: [number, number, number][] = [[7, 7, 2.1], [13.5, 11.5, 2.6], [8.5, 14.5, 1.6], [14, 5.5, 1.3]];
+  for (let y = 0; y < ORB; y++) {
+    let x = 0;
+    while (x < ORB) {
+      const d = Math.hypot(x + 0.5 - c, y + 0.5 - c);
+      const kind = (px: number, py: number): string => {
+        const dd = Math.hypot(px + 0.5 - c, py + 0.5 - c);
+        if (dd > 10.3) return '';
+        if (dd > 9.3) return 'var(--sun-edge)';
+        if (craters.some(([cx, cy, r]) => Math.hypot(px + 0.5 - cx, py + 0.5 - cy) <= r)) return 'var(--crater)';
+        if ((px - c) * 0.7 + (py - c) * 0.7 < -5.5 && dd > 6.5) return 'var(--sun-hi)';   // lit upper-left rim
+        return 'var(--sun)';
+      };
+      void d;
+      const k = kind(x, y);
+      if (!k) { x++; continue; }
+      let w = 1;
+      while (x + w < ORB && kind(x + w, y) === k) w++;
+      rects.push({ x, y, w, fill: k });
+      x += w;
+    }
+  }
+  return rects;
+})();
+
+function Orb() {
+  return (
+    <svg aria-hidden viewBox={`0 0 ${ORB} ${ORB}`} shapeRendering="crispEdges" className="absolute right-[10%] top-[10%] h-24 w-24">
+      {ORB_RECTS.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height={1} fill={r.fill} />)}
+    </svg>
+  );
+}
+
 export function PixelScene() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
       <div className="scene-stars absolute left-0 top-4" />
-      <span className="absolute right-[10%] top-[12%] h-16 w-16 border-[3px]" style={{ background: 'var(--sun)', borderColor: 'var(--sun-edge)' }} />
+      <Orb />
       <Cloud n={0} top="8%" delay="-10s" duration="90s" width={230} />
       <Cloud n={2} top="26%" delay="-55s" duration="130s" width={300} />
       <Cloud n={1} top="40%" delay="-30s" duration="110s" width={170} />
