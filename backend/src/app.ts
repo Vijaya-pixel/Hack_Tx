@@ -21,7 +21,7 @@ export interface Deps {
   snowflake: SnowflakeClient | null;
   snowflakeReason?: string;
   cortexModel: string;
-  llm?: Llm | null; // e.g. Gemini; when absent, Snowflake Cortex is used if connected
+  llm?: Llm | Llm[] | null; // AIs to try, in order. When absent, Snowflake Cortex is used if connected
   now?: () => Date;
 }
 
@@ -74,7 +74,7 @@ export function createApp(deps: Deps) {
   // Answers change when the code or the numbers change, so never let a browser or proxy reuse an old one.
   app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   const now = deps.now ?? (() => new Date());
-  const llm: Llm | null = deps.llm ?? (deps.snowflake ? cortexLlm(deps.snowflake, deps.cortexModel) : null);
+  const llms: Llm[] = deps.llm === undefined ? (deps.snowflake ? [cortexLlm(deps.snowflake, deps.cortexModel)] : []) : deps.llm === null ? [] : Array.isArray(deps.llm) ? deps.llm : [deps.llm];
 
   let cached: { at: number; value: Customer } | null = null;
   const customer = async (): Promise<Customer> => {
@@ -114,7 +114,7 @@ export function createApp(deps: Deps) {
     res.json({
       database: { mode: deps.store.mode, ...(deps.storeReason ? { fallbackReason: deps.storeReason } : {}) },
       snowflake: { connected: deps.snowflake !== null, customerSource: deps.repo.source, ...(deps.snowflakeReason ? { reason: deps.snowflakeReason } : {}) },
-      ai: llm ? { mode: llm.source, model: llm.model } : { mode: 'template' },
+      ai: llms.length ? { mode: llms[0].source, model: llms[0].model, order: llms.map((l) => l.source) } : { mode: 'template', order: [] },
       simulator: { running: deps.simulator.running() },
     });
   });
@@ -182,7 +182,7 @@ export function createApp(deps: Deps) {
     const preset = String(req.query.preset ?? 'worth') as Preset;
     if (!PRESETS.includes(preset)) throw new HttpError(400, `preset must be one of ${PRESETS.join(', ')}`);
     const { c, avg, extra, plan, bi } = await planFor(req.query.extraPerWeek, req.query, preset === 'double' ? 2 : 1);
-    const out = await explain({ customer: c, preset, extraPerWeek: roundMoney(extra), avgPerWeek: roundMoney(avg), plan, biweekly: bi }, llm);
+    const out = await explain({ customer: c, preset, extraPerWeek: roundMoney(extra), avgPerWeek: roundMoney(avg), plan, biweekly: bi }, llms);
     res.json({ ...out, extraPerWeek: roundMoney(extra) });
   });
 

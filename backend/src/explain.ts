@@ -113,21 +113,28 @@ export function cortexLlm(client: SnowflakeClient, model: string): Llm {
   };
 }
 
-export async function explain(input: ExplainInput, llm: Llm | null, timeoutMs = TIMEOUT_MS): Promise<Explanation> {
+// Tries each AI in order; the first reply that passes the number check wins. If none does, the standard text is used
+// and `rejected` says why each one was not used.
+export async function explain(input: ExplainInput, llms: Llm | Llm[] | null, timeoutMs = TIMEOUT_MS): Promise<Explanation> {
+  const list = llms === null ? [] : Array.isArray(llms) ? llms : [llms];
   const facts = buildFacts(input);
   const template: Explanation = { text: templateExplanation(facts), source: 'template', label: LABELS.template, preset: input.preset };
-  if (!llm) return { ...template, rejected: 'No AI is connected' };
-  const name = llm.source === 'gemini' ? 'Gemini' : 'Cortex';
-  try {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeout = new Promise<never>((_, rej) => { timer = setTimeout(() => rej(new Error(`${name} timed out`)), timeoutMs); });
-    const raw = await Promise.race([llm.complete(buildPrompt(facts)), timeout]).finally(() => clearTimeout(timer));
-    const reply = raw.trim();
-    if (!reply) return { ...template, rejected: `${name} returned an empty reply` };
-    const bad = unknownNumbers(reply, facts);
-    if (bad.length) return { ...template, rejected: `${name} used numbers we did not send: ${bad.join(', ')}` };
-    return { text: reply, source: llm.source, label: LABELS[llm.source], preset: input.preset };
-  } catch (e) {
-    return { ...template, rejected: `${name} failed: ${(e as Error).message.slice(0, 200)}` };
+  if (list.length === 0) return { ...template, rejected: 'No AI is connected' };
+  const reasons: string[] = [];
+  for (const llm of list) {
+    const name = llm.source === 'gemini' ? 'Gemini' : 'Cortex';
+    try {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const timeout = new Promise<never>((_, rej) => { timer = setTimeout(() => rej(new Error(`${name} timed out`)), timeoutMs); });
+      const raw = await Promise.race([llm.complete(buildPrompt(facts)), timeout]).finally(() => clearTimeout(timer));
+      const reply = raw.trim();
+      if (!reply) { reasons.push(`${name} returned an empty reply`); continue; }
+      const bad = unknownNumbers(reply, facts);
+      if (bad.length) { reasons.push(`${name} used numbers we did not send: ${bad.join(', ')}`); continue; }
+      return { text: reply, source: llm.source, label: LABELS[llm.source], preset: input.preset, ...(reasons.length ? { rejected: reasons.join('; ') } : {}) };
+    } catch (e) {
+      reasons.push(`${name} failed: ${(e as Error).message.slice(0, 200)}`);
+    }
   }
+  return { ...template, rejected: reasons.join('; ') };
 }

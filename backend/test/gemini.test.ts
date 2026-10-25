@@ -35,6 +35,38 @@ describe('Gemini client', () => {
   });
 });
 
+describe('Ask with several AIs', () => {
+  const customer = withPayment(DEMO_SEED);
+  const pay = customer.monthlyPayment;
+  const input: ExplainInput = {
+    customer, preset: 'worth', extraPerWeek: 12, avgPerWeek: 9.18,
+    plan: compare(payoff(28000, 5.9, pay), payoff(28000, 5.9, pay, 12), new Date('2026-10-24T00:00:00Z')),
+    biweekly: biweekly(28000, 5.9, pay, new Date('2026-10-24T00:00:00Z')),
+  };
+  const cortex = (reply: string | Error) => ({ source: 'cortex' as const, model: 'c', complete: async () => { if (reply instanceof Error) throw reply; return reply; } });
+  const gem = (reply: string) => createGeminiLlm({ apiKey: 'k', fetchFn: ok(reply) as unknown as typeof fetch });
+
+  test('Cortex goes first and wins when its reply passes', async () => {
+    const f = buildFacts(input);
+    const out = await explain(input, [cortex(`Good. ${f.lines[3]}`), gem(`Other. ${f.lines[3]}`)]);
+    assert.equal(out.source, 'cortex');
+  });
+  test('if Cortex fails or invents a number, Gemini is tried next and the reason is kept', async () => {
+    const f = buildFacts(input);
+    const failed = await explain(input, [cortex(new Error('region not supported')), gem(`Backup. ${f.lines[3]}`)]);
+    assert.equal(failed.source, 'gemini');
+    assert.match(failed.rejected!, /Cortex failed: region not supported/);
+    const invented = await explain(input, [cortex('Save $55,555.'), gem(`Backup. ${f.lines[3]}`)]);
+    assert.equal(invented.source, 'gemini');
+    assert.match(invented.rejected!, /Cortex used numbers/);
+  });
+  test('if every AI fails the standard text is used and both reasons are listed', async () => {
+    const out = await explain(input, [cortex(new Error('boom')), gem('Save $55,555.')]);
+    assert.equal(out.source, 'template');
+    assert.match(out.rejected!, /Cortex failed: boom; Gemini used numbers/);
+  });
+});
+
 describe('Ask with Gemini', () => {
   const customer = withPayment(DEMO_SEED);
   const pay = customer.monthlyPayment;

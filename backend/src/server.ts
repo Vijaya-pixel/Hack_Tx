@@ -5,6 +5,7 @@ import { connectFromEnv, cortexModel } from './snowflake.ts';
 import { createLocalRepo, createSnowflakeRepo } from './customers.ts';
 import { createApp } from './app.ts';
 import { geminiFromEnv } from './gemini.ts';
+import { cortexLlm } from './explain.ts';
 
 let db = null;
 try { db = await createDbFromEnv(); } catch (e) { console.error('Database setup failed:', (e as Error).message); }
@@ -18,12 +19,16 @@ if (client) {
   catch (e) { console.error(`Snowflake customer lookup failed (${(e as Error).message}). Run "npm run snowflake:setup". Using the local seed.`); repo = createLocalRepo(); }
 }
 
-const llm = geminiFromEnv(); // Gemini answers Ask when a key is set; otherwise Cortex (if connected), otherwise the standard text
-const app = createApp({ store, storeReason, simulator: createSimulator(store), repo, snowflake: client, snowflakeReason, cortexModel: cortexModel(), llm });
+// Which AI answers Ask. Cortex goes first when Snowflake is connected (that is the Snowflake challenge); Gemini is the backup.
+// Set AI_PROVIDER=gemini in .env to put Gemini first instead.
+const cortex = client ? cortexLlm(client, cortexModel()) : null;
+const gemini = geminiFromEnv();
+const llms = (process.env.AI_PROVIDER === 'gemini' ? [gemini, cortex] : [cortex, gemini]).filter((x): x is NonNullable<typeof x> => x !== null);
+const app = createApp({ store, storeReason, simulator: createSimulator(store), repo, snowflake: client, snowflakeReason, cortexModel: cortexModel(), llm: llms });
 const port = Number(process.env.PORT) || 4000;
 app.listen(port, () => {
   console.log(`RoundGear API on http://localhost:${port}`);
   console.log(`  transactions: ${store.mode}${storeReason ? ` (${storeReason})` : ''}`);
   console.log(`  customer:     ${repo.source}${snowflakeReason ? ` (${snowflakeReason})` : ''}`);
-  console.log(`  explanations: ${llm ? `Google Gemini (${llm.model})` : client ? 'Snowflake Cortex' : 'template'}`);
+  console.log(`  explanations: ${llms.length ? llms.map((l) => `${l.source === 'gemini' ? 'Google Gemini' : 'Snowflake Cortex'} (${l.model})`).join(' then ') + ', then the standard text' : 'standard text only'}`);
 });

@@ -153,7 +153,7 @@ describe('API with Gemini for Ask', () => {
     const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
     try {
       const h: any = await (await fetch(`${base}/api/health`)).json();
-      assert.deepEqual(h.ai, { mode: 'gemini', model: 'g-test' });
+      assert.deepEqual(h.ai, { mode: 'gemini', model: 'g-test', order: ['gemini'] });
       const e: any = await (await fetch(`${base}/api/explain?extraPerWeek=10`)).json();
       assert.equal(e.source, 'gemini'); // the stub reply has no numbers, so the number check accepts it
       assert.equal(e.label, 'AI explanation · Google Gemini');
