@@ -6,7 +6,7 @@ TigerData helpers and the chain adapter.
 
     npm install
     npm run typecheck     # strict TypeScript
-    npm test              # 84 tests, no network needed
+    npm test              # 109 tests, no network needed
 npm run gemini:check  # confirms your Gemini key and model work
     npm start             # reads backend/.env automatically
 
@@ -28,6 +28,7 @@ car-value model is a simple stated assumption, not a market quote.
 | `customers.ts` | Five synthetic customers (Maya, Jake, Sam, Priya, Lena) and a small catalog |
 | `advice.ts` | Options, recommendation with its reason, next step, and the value-versus-owed timeline with what-if sliders |
 | `explain.ts` | Explanation: Gemini rewords it, a number guard rejects any figure not in the advice, and it falls back to a template |
+| `readings.ts` | Odometer readings in a TigerData hypertable; 8-week pace with `regr_slope`, weekly points with `time_bucket` |
 | `gemini.ts` | Small Gemini REST client (no SDK): model from `GEMINI_MODEL`, key in a header, 12 second timeout |
 
 | Method | Path | What |
@@ -36,8 +37,10 @@ car-value model is a simple stated assumption, not a market quote.
 | GET | `/api/customers/:id/advice` | Options, recommendation, next step, assumptions |
 | GET | `/api/customers/:id/timeline` | Month-by-month value, amount owed and equity |
 | GET | `/api/customers/:id/explain` | Plain-language explanation |
+| GET | `/api/customers/:id/pace` | Lifetime and last-8-weeks pace, weekly points (TigerData, or in-memory without a database) |
 
-Optional query for advice, timeline and explain: `extraMiles` (-2000 to 3000 a month), `extraPayment` (0 to 2000), `today` (YYYY-MM-DD).
+Optional query for advice, timeline and explain: `extraMiles` (-2000 to 3000 a month), `extraPayment` (0 to 2000), `pace` (`average` or `recent`), `today` (YYYY-MM-DD).
+On startup the readings are loaded into the database once; set `RESEED=1` to reload them.
 The demo date is fixed at 2026-10-24 so the stories hold; set `DEMO_TODAY` to change it.
 
 ## Files

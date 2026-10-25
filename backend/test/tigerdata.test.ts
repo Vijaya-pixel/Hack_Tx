@@ -5,31 +5,39 @@ import type { Db } from '../src/db.ts';
 import { bucketFloor, enableHypertable } from '../src/tigerdata.ts';
 
 // A database that records every statement, and can be told to fail on chosen ones.
-function recordingDb(failWhen: (sql: string) => boolean = () => false): Db & { log: string[] } {
+// A database that records every statement, says whether TimescaleDB is available, and can fail on chosen statements.
+function recordingDb(failWhen: (sql: string) => boolean = () => false, available = true): Db & { log: string[] } {
   const log: string[] = [];
   return {
     log,
     query: async (text: string) => {
       log.push(text);
       if (failWhen(text)) throw new Error('simulated failure');
-      return { rows: [] };
+      return { rows: /pg_available_extensions/.test(text) ? [{ available }] : [] };
     },
   } as Db & { log: string[] };
 }
 
 describe('TigerData helpers', () => {
-  test('enableHypertable runs the extension, then create_hypertable for the named table', async () => {
+  test('enableHypertable checks availability, creates the extension, then the hypertable', async () => {
     const db = recordingDb();
     assert.equal(await enableHypertable(db, { table: 'readings', timeColumn: 'ts' }), true);
-    assert.equal(db.log.length, 2);
-    assert.match(db.log[0], /CREATE EXTENSION IF NOT EXISTS timescaledb/);
-    assert.match(db.log[1], /create_hypertable\('readings', 'ts', if_not_exists => TRUE/);
+    assert.equal(db.log.length, 3);
+    assert.match(db.log[0], /pg_available_extensions/);
+    assert.match(db.log[1], /CREATE EXTENSION IF NOT EXISTS timescaledb/);
+    assert.match(db.log[2], /create_hypertable\('readings', 'ts', if_not_exists => TRUE/);
   });
 
-  test('without TimescaleDB it returns false and stops after the first failure', async () => {
-    const db = recordingDb((sql) => /CREATE EXTENSION/.test(sql));
+  test('without TimescaleDB it only asks, sends no failing statement, and returns false', async () => {
+    const db = recordingDb(() => false, false);
     assert.equal(await enableHypertable(db, { table: 'readings', timeColumn: 'ts' }), false);
     assert.equal(db.log.length, 1);
+  });
+
+  test('available but not allowed to create it (permissions) also returns false', async () => {
+    const db = recordingDb((sql) => /CREATE EXTENSION/.test(sql));
+    assert.equal(await enableHypertable(db, { table: 'readings', timeColumn: 'ts' }), false);
+    assert.equal(db.log.length, 2);
   });
 
   test('a failing create_hypertable also returns false', async () => {
@@ -38,15 +46,15 @@ describe('TigerData helpers', () => {
   });
 
   test('unsafe table or column names are rejected before any SQL is sent', async () => {
-    const db = recordingDb();
+    const okDb = recordingDb();
     for (const spec of [
       { table: "x'); DROP TABLE users; --", timeColumn: 'ts' },
       { table: 'readings', timeColumn: 'ts, evil' },
       { table: 'Readings', timeColumn: 'ts' },
     ]) {
-      await assert.rejects(() => enableHypertable(db, spec), /safe SQL identifier/);
+      await assert.rejects(() => enableHypertable(okDb, spec), /safe SQL identifier/);
     }
-    assert.equal(db.log.filter((s) => /create_hypertable/.test(s)).length, 0);
+    assert.equal(okDb.log.filter((s) => /create_hypertable/.test(s)).length, 0);
   });
 
   test('on a real Postgres engine (no TimescaleDB) it reports false and the table still works', async () => {

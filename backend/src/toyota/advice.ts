@@ -6,7 +6,7 @@ import {
 import { VALUE_ASSUMPTION, carValue, fuelPerMonth } from './vehicle.ts';
 import { ASSUMPTIONS, CATALOG, currentPayment, type Customer, type LeaseContract, type LoanContract } from './customers.ts';
 
-export interface Scenario { extraMilesPerMonth: number; extraPayment: number }
+export interface Scenario { extraMilesPerMonth: number; extraPayment: number; pace?: number } // pace: miles a month to use instead of the lifetime average
 export const NO_SCENARIO: Scenario = { extraMilesPerMonth: 0, extraPayment: 0 };
 
 export interface Option {
@@ -118,7 +118,7 @@ function loanAdvice(c: Customer, k: LoanContract, today: string, s: Scenario): A
 function leaseFacts(c: Customer, k: LeaseContract, today: string, s: Scenario) {
   const elapsed = monthsBetween(k.startMonth, monthOf(today));
   const monthsLeft = Math.max(0, k.termMonths - elapsed);
-  const perMonth = c.milesNow / Math.max(1, elapsed);
+  const perMonth = s.pace ?? c.milesNow / Math.max(1, elapsed);
   const projected = c.milesNow + (perMonth + s.extraMilesPerMonth) * monthsLeft;
   const overMiles = Math.max(0, projected - k.allowedMiles);
   const overageCost = overMiles * k.overageFee;
@@ -175,6 +175,7 @@ function leaseAdvice(c: Customer, k: LeaseContract, today: string, s: Scenario):
       monthsLeft: f.monthsLeft, milesPerMonth: round0(f.perMonth), projectedMiles: round0(f.projected), allowedMiles: k.allowedMiles,
       overMiles: round0(f.overMiles), overageCost: round0(f.overageCost), returnFees: round0(fees), estimatedValueAtEnd: round0(f.valueAtEnd),
       buyoutPrice: k.residual, totalToBuy: round0(f.price), equity: round0(f.equity), currentPayment: round0(nowPay),
+      paceBasis: s.pace === undefined ? 'lifetime average' : 'last 8 weeks',
     },
     options, recommendedId, reason, nextStep,
     assumptions: [
@@ -205,12 +206,14 @@ export function timeline(c: Customer, today: string, s: Scenario = NO_SCENARIO):
   const nowMonth = monthOf(today);
   const elapsed = monthsBetween(k.startMonth, nowMonth);
   const horizon = Math.max(k.termMonths, elapsed) + 12;
-  const perMonth = c.milesNow / Math.max(1, elapsed);
+  const avgPace = c.milesNow / Math.max(1, elapsed);
+  const perMonth = avgPace;
+  const futurePace = s.pace ?? avgPace;
   const payment = k.kind === 'loan' ? currentPayment(c, loanPayment) : 0;
   const points: TimelinePoint[] = [];
   let owed = k.kind === 'loan' ? k.amountFinanced : k.residual;
   for (let m = 0; m <= horizon; m++) {
-    const miles = m <= elapsed ? perMonth * m : c.milesNow + (perMonth + s.extraMilesPerMonth) * (m - elapsed);
+    const miles = m <= elapsed ? perMonth * m : c.milesNow + (futurePace + s.extraMilesPerMonth) * (m - elapsed);
     if (k.kind === 'loan') {
       if (m <= elapsed) owed = balanceAfter(k.amountFinanced, k.apr, payment, m);
       else {

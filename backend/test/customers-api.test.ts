@@ -83,3 +83,26 @@ describe('explain route with a model plugged in', () => {
     assert.ok(down.explain.text.length > 50);
   });
 });
+
+describe('pace routes', () => {
+  test('/pace reports average, recent and weekly points', async () => {
+    const r = await get('/api/customers/maya/pace');
+    assert.equal(r.status, 200);
+    assert.equal(r.body.synthetic, true);
+    assert.ok(r.body.recent > r.body.average * 1.5);
+    assert.ok(r.body.weeks.length > 20);
+  });
+  test('?pace=recent raises Maya\'s projected fees; "average" or nothing keeps the default', async () => {
+    const base0 = await get('/api/customers/maya/advice');
+    const same = await get('/api/customers/maya/advice?pace=average');
+    const recent = await get('/api/customers/maya/advice?pace=recent');
+    assert.deepEqual(same.body, base0.body);
+    assert.ok(recent.body.facts.overageCost > base0.body.facts.overageCost);
+    assert.equal(recent.body.facts.paceBasis, 'last 8 weeks');
+    const tl = await get('/api/customers/maya/timeline?pace=recent');
+    assert.equal(tl.status, 200);
+  });
+  test('an unknown pace option is a 400', async () => {
+    assert.equal((await get('/api/customers/maya/advice?pace=fast')).status, 400);
+  });
+});

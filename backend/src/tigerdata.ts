@@ -20,19 +20,31 @@ const attempt = async (db: Db, sql: string): Promise<boolean> => {
   try { await db.query(sql); return true; } catch { return false; }
 };
 
+// True if the server offers the TimescaleDB extension (TigerData services do). Never throws.
+export async function timescaleAvailable(db: Db): Promise<boolean> {
+  try {
+    const { rows } = await db.query<{ available: boolean }>(
+      "SELECT EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'timescaledb') AS available");
+    return rows[0]?.available === true;
+  } catch { return false; }
+}
+
 // Turns an existing table into a hypertable. Returns false if TimescaleDB isn't available.
 // Safe to run on every startup.
 export async function enableHypertable(db: Db, { table, timeColumn }: HypertableSpec): Promise<boolean> {
+  // Ask first, so a database without TimescaleDB never sees a failing statement (failed statements make
+  // some connection pools drop and reopen the connection).
+  if (!(await timescaleAvailable(db))) return false;
   if (!(await attempt(db, 'CREATE EXTENSION IF NOT EXISTS timescaledb'))) return false;
   return attempt(db,
     `SELECT create_hypertable('${ident(table)}', '${ident(timeColumn)}', if_not_exists => TRUE, migrate_data => TRUE)`);
 }
 
-export type Unit = 'hour' | 'day';
+export type Unit = 'hour' | 'day' | 'week';
 
 // time_bucket on TimescaleDB, date_trunc on plain Postgres.
 export function bucketFloor(timescale: boolean, unit: Unit, column: string): string {
-  const u = unit === 'hour' ? 'hour' : 'day'; // never taken from user text
+  const u = unit === 'hour' ? 'hour' : unit === 'week' ? 'week' : 'day'; // never taken from user text
   const col = column.split('.').map(ident).join('.'); // allows alias.column
   return timescale ? `time_bucket(INTERVAL '1 ${u}', ${col})` : `date_trunc('${u}', ${col})`;
 }
