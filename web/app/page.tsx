@@ -34,9 +34,8 @@ export default function Dashboard() {
   useEffect(() => { if (extra === null && plan.data) setExtra(plan.data.avgPerWeek); }, [extra, plan.data]);
 
   const [preset, setPreset] = useState<Preset>('worth');
-  const [askRuns, setAskRuns] = useState(0); // 0 = not asked yet
   const settled = useDebounced(enabled ? extra : 0, 400);
-  const explain = useApi<Explanation>(askRuns === 0 || settled === null ? null : `/api/explain?preset=${preset}&extraPerWeek=${settled}&run=${askRuns}`);
+  const explain = useApi<Explanation>(settled === null ? null : `/api/explain?preset=${preset}&extraPerWeek=${settled}`);
 
   const [dialog, setDialog] = useState<HardshipKind | null>(null);
   const [demoBusy, setDemoBusy] = useState(false);
@@ -50,16 +49,15 @@ export default function Dashboard() {
   return (
     <div className="mx-auto max-w-[1360px] px-4 py-5 md:px-8 md:py-8">
       <Header name={customer.data?.name} feed={feed.data} />
-      <main className="mt-6 grid gap-6 lg:grid-cols-3">
-        <div className="flex flex-col gap-6">
+      <main className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-6">
           <RoundupsCard state={roundups} />
           <Tiles running={running} busy={demoBusy} onToggleDemo={toggleDemo} onRequest={setDialog}
             onPlan={() => scrollTo('loan')} onAsk={() => scrollTo('ask')} />
           <TightCard open={dialog !== null} onToggle={(v) => setDialog(v ? 'biweekly' : null)} />
         </div>
-        <div className="flex flex-col gap-6">
-          <AskCard id="ask" state={explain} preset={preset} asked={askRuns > 0}
-            onPick={(p) => { setPreset(p); setAskRuns((n) => n + 1); }} onAsk={() => setAskRuns((n) => n + 1)} />
+        <div className="flex min-w-0 flex-col gap-6">
+          <AskCard id="ask" state={explain} preset={preset} onPick={setPreset} />
           <LiveCard state={feed} busy={demoBusy} onToggle={toggleDemo} />
         </div>
         <LoanCard id="loan" customer={customer} plan={plan} extra={extra ?? 0} onExtra={setExtra} enabled={enabled} onEnabled={setEnabled} />

@@ -15,7 +15,8 @@ describe('seed data', () => {
     assert.deepEqual(a, generateTransactions(NOW));
     assert.ok(a.length > 150 && a.length < 400, String(a.length));
     for (const t of a) assert.equal(t.roundupCents, roundUp(t.amountCents));
-    assert.ok(new Date(a.at(-1)!.ts) < weekStart(NOW));
+    assert.ok(new Date(a.at(-1)!.ts) <= NOW);
+    assert.ok(a.some((t) => new Date(t.ts) >= weekStart(NOW)), 'includes the current week');
   });
   test('covers the usual categories', () => {
     const cats = new Set(generateTransactions(NOW).map((t) => t.category));
@@ -32,7 +33,7 @@ describe('memory store', () => {
     const sum = await s.roundups(CUSTOMER_ID, NOW);
     assert.equal(s.mode, 'memory');
     assert.equal(sum.completedWeeks, 12);
-    assert.equal(sum.weekly.length, 12);
+    assert.equal(sum.weekly.length, 13); // 12 completed weeks plus this week so far
     assert.equal(sum.avgPerWeekCents, Math.round(sum.totalCents / 12));
     assert.ok(sum.avgPerWeekCents > 500 && sum.avgPerWeekCents < 3000, String(sum.avgPerWeekCents));
   });
@@ -44,7 +45,7 @@ describe('memory store', () => {
     assert.equal(feed[0].merchant, 'Test Cafe');
     const after = await s.roundups(CUSTOMER_ID, NOW);
     assert.equal(after.weekly.length, 13);
-    assert.equal(after.weekly.at(-1)!.roundupCents, 80);
+    assert.equal(after.weekly.at(-1)!.roundupCents, before.weekly.at(-1)!.roundupCents + 80);
     assert.equal(after.avgPerWeekCents, before.avgPerWeekCents);
   });
 });

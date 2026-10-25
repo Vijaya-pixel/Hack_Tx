@@ -21,7 +21,7 @@ export function LiveCard({ state, busy, onToggle }: { state: Loaded<Feed>; busy:
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold tracking-tight">Live</h2>
         <span className="flex items-center gap-2 text-xs text-grey">
-          <span className={`h-2 w-2 rounded-full ${data?.running ? 'animate-pulse bg-neon' : 'bg-[#cfcfcf]'}`} />
+          <span className={`h-2 w-2 rounded-full ${data?.running ? 'animate-pulse bg-accent' : 'bg-[#cfcfcf]'}`} />
           {data?.running ? 'Demo running' : 'Demo stopped'}
         </span>
       </div>
@@ -29,7 +29,7 @@ export function LiveCard({ state, busy, onToggle }: { state: Loaded<Feed>; busy:
         <p className="mt-4 rounded-2xl bg-soft p-8 text-center text-sm text-grey">No purchases yet. Press play to start the demo feed.</p>
       ) : (
         <>
-          <div className="mt-4 rounded-3xl bg-neon p-5 text-ink">
+          <div className="mt-4 rounded-3xl bg-accent p-5 text-ink">
             <p className="text-xs font-medium uppercase tracking-widest opacity-60">{pinned === null ? 'Latest purchase' : 'Earlier purchase'}</p>
             <p className="mt-6 text-2xl font-light leading-tight">{current.category} {usd2(current.amount)}</p>
             <p className="big mt-1 text-6xl font-light">+{usd2(current.roundup)}</p>
@@ -38,7 +38,7 @@ export function LiveCard({ state, busy, onToggle }: { state: Loaded<Feed>; busy:
           <div className="mt-5 flex h-14 items-end gap-[3px]" role="img" aria-label="Last 30 round-ups">
             {bars.map((t) => (
               <button key={t.id} onClick={() => setPinned(t.id === items[0].id ? null : t.id)} aria-label={`${t.merchant} ${usd2(t.roundup)}`}
-                className={`flex-1 rounded-full transition-colors ${t.id === current.id ? 'bg-neon' : 'bg-[#dcdcdc] hover:bg-[#bdbdbd]'}`}
+                className={`flex-1 rounded-full transition-colors ${t.id === current.id ? 'bg-accent' : 'bg-[#dcdcdc] hover:bg-[#bdbdbd]'}`}
                 style={{ height: `${Math.max(12, (t.roundup / max) * 100)}%` }} />
             ))}
           </div>

@@ -58,7 +58,7 @@ export function HardshipDialog({ kind, plan, onKind, onClose }: { kind: Hardship
           <div className="mt-4"><Segmented label="Request type" options={KINDS} value={kind} onChange={onKind} /></div>
           <p className="mt-5 text-[15px] leading-relaxed text-ink/80">{copy[kind].text}</p>
           {sent[kind] ? (
-            <p role="status" className="mt-5 rounded-2xl bg-neon/25 p-4 text-sm font-medium">{sent[kind]}</p>
+            <p role="status" className="mt-5 rounded-2xl bg-accent/25 p-4 text-sm font-medium">{sent[kind]}</p>
           ) : (
             <button onClick={send} disabled={busy} className="mt-5 w-full rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white">
               {busy ? 'Sending…' : copy[kind].button}

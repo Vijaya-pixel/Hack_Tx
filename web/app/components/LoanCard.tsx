@@ -1,5 +1,6 @@
 'use client';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useState } from 'react';
+import { CartesianGrid, Line, ReferenceDot, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { Customer, Plan } from '@/lib/api';
 import { monthYear, usd, usd2 } from '@/lib/format';
 import type { Loaded } from '@/lib/useApi';
@@ -13,7 +14,7 @@ function Gauge({ pct }: { pct: number }) {
     <div className="relative mx-auto w-full max-w-[200px]">
       <svg viewBox="0 0 200 110" className="w-full" role="img" aria-label={`${pct}% of the loan paid off`}>
         <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="#ececec" strokeWidth="16" strokeLinecap="round" />
-        <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="#5ceb3b" strokeWidth="16" strokeLinecap="round"
+        <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="#ffc83d" strokeWidth="16" strokeLinecap="round"
           strokeDasharray={ARC} strokeDashoffset={ARC * (1 - pct / 100)} style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
       </svg>
       <p className="big absolute inset-x-0 bottom-0 text-center text-4xl"><AnimatedNumber value={pct} format={(n) => `${n.toFixed(0)}%`} /></p>
@@ -21,11 +22,13 @@ function Gauge({ pct }: { pct: number }) {
   );
 }
 
+type View = 'last18' | 'full';
 type Quick = 0 | 10 | 'avg' | 25 | 50;
 
 export function LoanCard({ id, customer, plan, extra, onExtra, enabled, onEnabled }: {
   id: string; customer: Loaded<Customer>; plan: Loaded<Plan>; extra: number; onExtra: (v: number) => void; enabled: boolean; onEnabled: (v: boolean) => void;
 }) {
+  const [view, setView] = useState<View>('last18');
   const c = customer.data, p = plan.data;
   const quick: { value: Quick; label: string }[] = [
     { value: 0, label: '$0' }, { value: 10, label: '$10' }, { value: 'avg', label: 'Avg' }, { value: 25, label: '$25' }, { value: 50, label: '$50' },
@@ -33,9 +36,11 @@ export function LoanCard({ id, customer, plan, extra, onExtra, enabled, onEnable
   const selected: Quick | null = !p ? null : (quick.find((q) => Math.abs((q.value === 'avg' ? p.avgPerWeek : q.value) - extra) < 0.005)?.value ?? null);
 
   const months = p ? Math.max(p.standard.schedule.length, p.withRoundUps.schedule.length) : 0;
-  const data = p ? Array.from({ length: months }, (_, m) => ({
+  const all = p ? Array.from({ length: months }, (_, m) => ({
     month: m, standard: p.standard.schedule[m]?.balance ?? 0, withRoundUps: p.withRoundUps.schedule[m]?.balance ?? 0,
   })) : [];
+  // The last 18 months of the standard loan, where the two lines pull apart.
+  const data = view === 'last18' ? all.slice(Math.max(0, months - 19)) : all;
 
   return (
     <Card id={id} className="flex h-full flex-col gap-5">
@@ -56,19 +61,29 @@ export function LoanCard({ id, customer, plan, extra, onExtra, enabled, onEnable
 
       {plan.error && !p ? <ErrorNote message={plan.error} retry={plan.reload} /> : !p ? <Skeleton className="h-60" /> : (
         <div>
-          <div className="mb-1 flex items-center gap-4 text-xs text-grey">
-            <span className="flex items-center gap-1.5"><span className="h-1 w-5 rounded-full bg-[#b5b5b5]" />Standard</span>
-            <span className="flex items-center gap-1.5"><span className="h-1 w-5 rounded-full bg-neon" />With round-ups</span>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-4 text-xs text-grey">
+              <span className="flex items-center gap-1.5"><span className="h-1 w-5 rounded-full bg-[#b5b5b5]" />Standard</span>
+              <span className="flex items-center gap-1.5"><span className="h-1 w-5 rounded-full bg-accent" />With round-ups</span>
+            </div>
+            <div className="w-64 [&_button]:whitespace-nowrap"><Segmented<View> label="Chart range" options={[{ value: 'last18', label: 'Last 18 months' }, { value: 'full', label: 'Full loan' }]} value={view} onChange={setView} /></div>
           </div>
+          {p.kpis.monthsSaved > 0 && (
+            <p className="mb-1 inline-flex items-center gap-2 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-white">
+              <span className="h-2 w-2 rounded-full bg-accent" />
+              Paid off {p.kpis.monthsSaved} {p.kpis.monthsSaved === 1 ? 'month' : 'months'} earlier · {usd(p.kpis.interestSaved)} interest saved
+            </p>
+          )}
           <div className="h-56 w-full" role="img" aria-label="Loan balance over time, standard versus with round-ups">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data} margin={{ top: 6, right: 6, left: -8, bottom: 0 }}>
                 <CartesianGrid stroke="#eeeeee" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9a9a9a' }} axisLine={false} tickLine={false} tickFormatter={(m: number) => `${m}m`} interval="preserveStartEnd" minTickGap={30} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9a9a9a' }} axisLine={false} tickLine={false} tickFormatter={(m: number) => `M${m}`} interval="preserveStartEnd" minTickGap={30} />
                 <YAxis tickFormatter={(v: number) => `$${Math.round(v / 1000)}k`} tick={{ fontSize: 11, fill: '#9a9a9a' }} axisLine={false} tickLine={false} width={44} />
                 <Tooltip formatter={(v) => usd(Number(v))} labelFormatter={(m) => `Month ${m}`} contentStyle={{ borderRadius: 16, border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,.15)' }} />
                 <Line type="monotone" dataKey="standard" stroke="#b5b5b5" strokeWidth={2.5} dot={false} isAnimationActive={false} />
-                <Line type="monotone" dataKey="withRoundUps" stroke="#5ceb3b" strokeWidth={3.5} dot={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="withRoundUps" stroke="#ffc83d" strokeWidth={3.5} dot={false} isAnimationActive={false} />
+                {p.kpis.monthsSaved > 0 && <ReferenceDot x={p.withRoundUps.months} y={0} r={7} fill="#ffc83d" stroke="#0b0b0b" strokeWidth={2} ifOverflow="visible" />}
               </LineChart>
             </ResponsiveContainer>
           </div>

@@ -24,7 +24,7 @@ export function Tiles({ running, busy, onToggleDemo, onRequest, onPlan, onAsk }:
           <button key={t.key} onClick={t.onClick} disabled={t.key === 'demo' && busy}
             className={`card flex aspect-square flex-col justify-between p-4 text-left md:p-5 ${dark ? '!bg-ink text-white' : 'text-ink'}`}>
             <Icon size={26} strokeWidth={1.5} />
-            <span className="text-[13px] font-medium leading-tight md:text-sm">{t.label}</span>
+            <span className="flex h-9 items-end text-[13px] font-medium leading-tight md:text-sm">{t.label}</span>
           </button>
         );
       })}

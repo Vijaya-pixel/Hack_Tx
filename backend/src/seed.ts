@@ -54,13 +54,14 @@ export function weekStart(now: Date): Date {
   return new Date(d.getTime() - ((d.getUTCDay() + 6) % 7) * DAY);
 }
 
-// 12 complete weeks of purchases ending at the start of the current week, oldest first.
+// 12 complete weeks of purchases, plus the current week up to `now`, oldest first.
 export function generateTransactions(now: Date = new Date(), weeks = SEED_WEEKS): Tx[] {
   const end = weekStart(now);
   const start = end.getTime() - weeks * 7 * DAY;
   const r = rng(Math.floor(start / DAY));
   const out: Tx[] = [];
-  for (let d = 0; d < weeks * 7; d++) {
+  const days = weeks * 7 + Math.floor((now.getTime() - end.getTime()) / DAY) + 1; // through today
+  for (let d = 0; d < days; d++) {
     const day = start + d * DAY;
     const dow = new Date(day).getUTCDay(); // 0 = Sunday
     const weekday = dow >= 1 && dow <= 5;
@@ -75,7 +76,7 @@ export function generateTransactions(now: Date = new Date(), weeks = SEED_WEEKS)
     if (r() < 0.06) out.push(make(r, 'pharmacy', at(15)));
     if (d % 28 === 3) out.push(make(r, 'streaming', at(9)));
   }
-  return out;
+  return out.filter((t) => new Date(t.ts).getTime() <= now.getTime());
 }
 
 // One random purchase for the live demo feed.

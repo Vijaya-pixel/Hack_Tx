@@ -87,6 +87,7 @@ describe('compare and biweekly', () => {
 describe('percentPaid', () => {
   test('share of the original loan paid, one decimal, clamped', () => {
     assert.equal(percentPaid(35000, 28000), 20);
+    assert.equal(percentPaid(34500, 28000), 18.8);
     assert.equal(percentPaid(35000, 0), 100);
     assert.equal(percentPaid(30000, 31000), 0);
     assert.equal(percentPaid(3, 2), 33.3);

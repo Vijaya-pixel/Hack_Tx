@@ -85,11 +85,16 @@ export function createApp(deps: Deps) {
     const s = await deps.store.roundups(CUSTOMER_ID, now());
     const thisWeekKey = weekStart(now()).toISOString().slice(0, 10);
     const thisWeek = dollars(s.weekly.find((w) => w.week === thisWeekKey)?.roundupCents ?? 0);
+    const lastDone = s.weekly.filter((w) => w.week < thisWeekKey).at(-1);
     const avg = dollars(s.avgPerWeekCents);
+    // An empty current week shows last week instead, so the headline card never reads $0.
+    const highlight = thisWeek > 0 || !lastDone
+      ? { label: 'This week', amount: thisWeek }
+      : { label: 'Last week', amount: dollars(lastDone.roundupCents) };
     res.json({
       range,
       thisWeek,
-      thisWeekProgress: avg > 0 ? Math.round(Math.min(1, thisWeek / avg) * 1000) / 1000 : 0,
+      highlight: { ...highlight, progress: avg > 0 ? Math.round(Math.min(1, highlight.amount / avg) * 1000) / 1000 : 0 },
       source: s.mode,
       weeks: s.completedWeeks,
       total: dollars(s.totalCents),

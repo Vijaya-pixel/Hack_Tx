@@ -20,7 +20,7 @@ export interface HardshipResult { id: string; kind: HardshipKind; status: 'PENDI
 export const HARDSHIP_MESSAGE = 'Request sent. A TFS specialist will review it.';
 
 export const ALEX_SEED = {
-  id: 'alex', name: 'Alex Rivera', vehicle: '2024 Toyota RAV4 Hybrid', originalAmount: 35000, balance: 28000, apr: 5.9, monthsRemaining: 48,
+  id: 'alex', name: 'Alex Rivera', vehicle: '2024 Toyota RAV4 Hybrid', originalAmount: 34500, balance: 28000, apr: 5.9, monthsRemaining: 48,
 };
 
 export function withPayment(c: Omit<Customer, 'monthlyPayment'>): Customer {
@@ -55,7 +55,7 @@ export function createSnowflakeRepo(client: SnowflakeClient): CustomerRepo {
          FROM CUSTOMERS c JOIN LOANS l ON l.CUSTOMER_ID = c.CUSTOMER_ID WHERE c.CUSTOMER_ID = ?`, [id]);
       const r = rows[0];
       if (!r) throw new Error(`No customer ${id} in Snowflake`);
-      return withPayment({ id: r.CUSTOMER_ID, name: r.NAME, vehicle: r.VEHICLE, originalAmount: Number(r.ORIGINAL_AMOUNT), balance: Number(r.BALANCE), apr: Number(r.APR), monthsRemaining: Number(r.MONTHS_REMAINING) });
+      return withPayment({ id: r.CUSTOMER_ID, name: r.NAME, vehicle: r.VEHICLE, originalAmount: Number(r.ORIGINAL_AMOUNT ?? r.BALANCE), balance: Number(r.BALANCE), apr: Number(r.APR), monthsRemaining: Number(r.MONTHS_REMAINING) });
     },
     async saveHardship(customerId, kind) {
       const requestId = `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;

@@ -10,9 +10,7 @@ const ROWS: { id: Preset; title: string; sub: string; icon: LucideIcon }[] = [
   { id: 'tight', title: 'What if money is tight?', sub: 'Lighter options for you', icon: LifeBuoy },
 ];
 
-export function AskCard({ id, state, preset, asked, onPick, onAsk }: {
-  id: string; state: Loaded<Explanation>; preset: Preset; asked: boolean; onPick: (p: Preset) => void; onAsk: () => void;
-}) {
+export function AskCard({ id, state, preset, onPick }: { id: string; state: Loaded<Explanation>; preset: Preset; onPick: (p: Preset) => void }) {
   const { data, error, loading, reload } = state;
   return (
     <Card id={id}>
@@ -21,7 +19,7 @@ export function AskCard({ id, state, preset, asked, onPick, onAsk }: {
       <ul className="mt-4 space-y-2">
         {ROWS.map((r) => {
           const Icon = r.icon;
-          const on = asked && preset === r.id;
+          const on = preset === r.id;
           return (
             <li key={r.id}>
               <button onClick={() => onPick(r.id)} aria-pressed={on}
@@ -36,17 +34,21 @@ export function AskCard({ id, state, preset, asked, onPick, onAsk }: {
           );
         })}
       </ul>
-      <div className="mt-4 min-h-24" aria-live="polite">
-        {!asked ? <p className="text-sm text-grey">Pick a question to see a short, plain-language answer.</p>
-          : error && !data ? <ErrorNote message={error} retry={reload} />
-          : !data ? <Skeleton className="h-24" /> : (
+      <div className="mt-4" aria-live="polite">
+        {error && !data ? <ErrorNote message={error} retry={reload} />
+          : loading || !data ? (
+            <div role="status" aria-label="Getting your answer" className="space-y-2">
+              <Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-11/12" /><Skeleton className="h-4 w-2/3" />
+            </div>
+          ) : (
             <>
-              <p className={`text-[15px] leading-relaxed transition-opacity ${loading ? 'opacity-40' : ''}`}>{data.text}</p>
-              <p className="mt-3 inline-block rounded-full bg-soft px-3 py-1 text-xs font-medium text-grey" title={data.rejected}>{data.label}</p>
+              <p className="text-[15px] leading-relaxed">{data.text}</p>
+              <p className="mt-3 inline-block rounded-full bg-soft px-3 py-1 text-xs font-medium text-grey" title={data.rejected}>
+                {data.source === 'cortex' ? 'Snowflake Cortex' : 'Standard'}
+              </p>
             </>
           )}
       </div>
-      <button onClick={onAsk} className="mt-4 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white">Ask</button>
     </Card>
   );
 }
