@@ -34,8 +34,8 @@ export default function Home() {
               <p className="text-sm text-grey">{usd(c.balance)} · {c.apr}% APR · {c.monthsRemaining} months left</p>
               <div className="mx-auto my-4 w-4/5"><Car /></div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-3xl bg-white p-4"><p className="label">Monthly payment</p><p className="big mt-3 text-3xl">{usd2(c.monthlyPayment)}</p></div>
-                <div className="rounded-3xl bg-white p-4"><p className="label">Loan paid off</p><div className="mt-2">{c.percentPaid === null ? <p className="copy text-xs text-grey">Add the original amount to see this.</p> : <Gauge pct={c.percentPaid} />}</div></div>
+                <div className="rounded-3xl bg-panel p-4"><p className="label">Monthly payment</p><p className="big mt-3 text-3xl">{usd2(c.monthlyPayment)}</p></div>
+                <div className="rounded-3xl bg-panel p-4"><p className="label">Loan paid off</p><div className="mt-2">{c.percentPaid === null ? <p className="copy text-xs text-grey">Add the original amount to see this.</p> : <Gauge pct={c.percentPaid} />}</div></div>
               </div>
               <LoanForm customer={c} active={loan !== null} onApply={setLoan} onReset={() => setLoan(null)} />
             </>
@@ -50,7 +50,7 @@ export default function Home() {
               <h2 className="text-lg tracking-tight">{l.title}</h2>
               <p className="copy mt-1 text-[13px] text-grey">{l.text}</p>
             </div>
-            <span className="grid h-10 w-10 place-items-center rounded-full border border-[#e2e2e2] bg-white transition-colors group-hover:bg-ink group-hover:text-white"><ArrowUpRight size={18} strokeWidth={1.5} /></span>
+            <span className="grid h-10 w-10 place-items-center rounded-full border border-line bg-panel transition-colors group-hover:bg-fill group-hover:text-onfill"><ArrowUpRight size={18} strokeWidth={1.5} /></span>
           </Link>
         ))}
       </div>

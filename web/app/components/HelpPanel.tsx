@@ -33,12 +33,12 @@ export function HelpPanel({ plan }: { plan: Plan | null }) {
         <Card key={o.kind} id={o.kind} className="flex flex-col scroll-mt-6">
           <h2 className="text-xl tracking-tight">{o.title}</h2>
           <p className="copy mt-2 text-[14px] leading-relaxed text-ink/80">{o.text}</p>
-          {o.effect && <p className="copy mt-3 rounded-2xl bg-white p-3 text-[13px] font-medium">{o.effect}</p>}
+          {o.effect && <p className="copy mt-3 rounded-2xl bg-panel p-3 text-[13px] font-medium">{o.effect}</p>}
           <div className="mt-auto pt-5">
             {sent[o.kind] ? (
-              <p role="status" className="rounded-2xl bg-ink/5 p-4 text-sm font-medium">{sent[o.kind]}</p>
+              <p role="status" className="rounded-2xl bg-soft p-4 text-sm font-medium">{sent[o.kind]}</p>
             ) : (
-              <button onClick={() => send(o.kind)} disabled={busy !== null} className="w-full rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white">
+              <button onClick={() => send(o.kind)} disabled={busy !== null} className="skeu w-full rounded-full px-5 py-3 text-sm font-semibold">
                 {busy === o.kind ? 'Sending…' : o.button}
               </button>
             )}

@@ -1,6 +1,7 @@
 'use client';
 import { Bell } from 'lucide-react';
 import Link from 'next/link';
+import { ThemeToggle } from './ThemeToggle';
 import { useState } from 'react';
 import type { Feed } from '@/lib/api';
 import { usd2 } from '@/lib/format';
@@ -22,7 +23,7 @@ export function Header({ name, feed, path }: { name?: string; feed: Feed | null;
       className={`${size} whitespace-nowrap transition-colors ${active(href) ? 'font-medium text-ink underline decoration-toyota decoration-2 underline-offset-8' : 'text-grey hover:text-ink'}`}>{label}</Link>
   );
   return (
-    <header className="border-b border-[#eee] bg-white">
+    <header className="border-b border-line bg-page">
       <div className="mx-auto grid max-w-[1360px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-4 md:px-8">
         <div className="col-start-1 text-left">
           <Link href="/" className="block"><p className="wordmark text-sm uppercase tracking-[0.2em] md:text-base">Round·Up</p>
@@ -32,14 +33,15 @@ export function Header({ name, feed, path }: { name?: string; feed: Feed | null;
           {NAV.map((n) => link(n.href, n.label, 'text-[15px]'))}
         </nav>
         <div className="relative col-start-3 flex items-center justify-end gap-3">
-          <span className="hidden rounded-full bg-[#f3f3f3] px-3 py-1 text-xs font-medium text-grey lg:inline">Demo data</span>
+          <ThemeToggle />
+          <span className="hidden rounded-full bg-soft px-3 py-1 text-xs font-medium text-grey lg:inline">Demo data</span>
           <button onClick={() => setOpen((o) => !o)} aria-label="Recent round-ups" aria-expanded={open}
-            className="relative grid h-11 w-11 place-items-center rounded-full border border-[#eee] bg-white">
+            className="relative grid h-11 w-11 place-items-center rounded-full border border-line bg-panel">
             <Bell size={20} strokeWidth={1.5} />
             {feed?.running && <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-accent" />}
           </button>
           {open && (
-            <div className="absolute right-0 top-14 z-20 w-72 rounded-3xl border border-[#eee] bg-white p-4 shadow-2xl">
+            <div className="absolute right-0 top-14 z-20 w-72 rounded-3xl border border-line bg-panel p-4 shadow-2xl">
               <p className="label mb-2">Recent round-ups</p>
               {items.length === 0 ? <p className="text-sm text-grey">Nothing yet. Start the demo on the Live page.</p> : (
                 <ul className="space-y-2">
@@ -50,7 +52,7 @@ export function Header({ name, feed, path }: { name?: string; feed: Feed | null;
               )}
             </div>
           )}
-          <span className="grid h-11 w-11 place-items-center rounded-full bg-ink text-xs font-semibold text-white" title={name} aria-label={name ?? 'Account'}>
+          <span className="grid h-11 w-11 place-items-center rounded-full bg-fill text-xs font-semibold text-onfill" title={name} aria-label={name ?? 'Account'}>
             {name ? name.split(' ').map((p) => p[0]).join('').slice(0, 2) : '…'}
           </span>
         </div>

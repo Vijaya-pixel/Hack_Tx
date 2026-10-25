@@ -19,7 +19,7 @@ export function PlanCard({ plan, base, extra, enabled }: { plan: Loaded<Plan>; b
   const title = amount === 0 ? 'Standard' : `${usd2(amount)} a week`;
   const sub = amount === 0 ? 'No extra payments' : isAvg ? 'Your average, from your round-ups' : 'Extra to principal each week';
   return (
-    <article className="card relative overflow-hidden bg-gradient-to-br from-[#fde3e5] via-[#f7f7f7] to-[#f7f7f7] p-6 md:p-8">
+    <article className="card relative overflow-hidden bg-gradient-to-br from-toyota/15 via-card to-card p-6 md:p-8">
       <span aria-hidden className="pointer-events-none absolute -right-2 top-20 select-none text-[160px] font-black leading-none tracking-tighter text-toyota/[0.07]">${Math.round(amount)}</span>
       <div className="relative flex items-start justify-between gap-3">
         <div>
@@ -28,14 +28,14 @@ export function PlanCard({ plan, base, extra, enabled }: { plan: Loaded<Plan>; b
         </div>
         <div className="flex items-center gap-3">
           <span className="whitespace-nowrap text-lg font-medium">{p ? (p.kpis.interestSaved > 0 ? <><AnimatedNumber value={p.kpis.interestSaved} format={usd} /> saved</> : 'No extra') : '…'}</span>
-          <Link href="/help#biweekly" aria-label="See the bi-weekly option" className="grid h-10 w-10 place-items-center rounded-full border border-[#e2e2e2] bg-white transition-colors hover:bg-ink hover:text-white">
+          <Link href="/help#biweekly" aria-label="See the bi-weekly option" className="grid h-10 w-10 place-items-center rounded-full border border-line bg-panel transition-colors hover:bg-fill hover:text-onfill">
             <ArrowUpRight size={18} strokeWidth={1.5} />
           </Link>
         </div>
       </div>
       <div className="relative mx-auto my-6 w-3/5 min-w-[220px]"><Car /></div>
       {p ? (
-        <div className="relative grid grid-cols-3 divide-x divide-[#dedede]">
+        <div className="relative grid grid-cols-3 divide-x divide-line">
           <Stat label="Time saved"><AnimatedNumber value={p.kpis.monthsSaved} format={(n) => `${Math.round(n)} mo`} /></Stat>
           <Stat label="Interest saved"><AnimatedNumber value={p.kpis.interestSaved} format={usd} /></Stat>
           <Stat label="Paid off">{monthYear(p.kpis.newPayoffDate)}</Stat>

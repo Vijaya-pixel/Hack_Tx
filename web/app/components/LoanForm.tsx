@@ -9,7 +9,7 @@ function Field({ label, suffix, value, onChange, min, max, step, required = true
   return (
     <label className="block">
       <span className="label">{label}</span>
-      <span className="mt-1 flex items-center rounded-2xl border border-[#e2e2e2] bg-white px-3 focus-within:border-ink">
+      <span className="mt-1 flex items-center rounded-2xl border border-line bg-panel px-3 focus-within:border-ink">
         <input type="number" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} min={min} max={max} step={step ?? 'any'} required={required}
           className="w-full bg-transparent py-2.5 text-[15px] outline-none" />
         <span className="text-sm text-grey">{suffix}</span>
@@ -38,9 +38,9 @@ export function LoanForm({ customer, active, onApply, onReset }: {
   }
 
   return (
-    <div className="mt-5 border-t border-[#e6e6e6] pt-4">
+    <div className="mt-5 border-t border-line pt-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="rounded-full border border-[#e2e2e2] bg-white px-4 py-2 text-sm font-medium transition-colors hover:bg-ink hover:text-white">
+        <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="rounded-full border border-line bg-panel px-4 py-2 text-sm font-medium transition-colors hover:bg-fill hover:text-onfill">
           {open ? 'Hide the form' : 'Try your own loan'}
         </button>
         {active && <span className="rounded-full bg-toyota px-3 py-1 text-xs font-medium text-white">Showing your numbers</span>}
@@ -52,8 +52,8 @@ export function LoanForm({ customer, active, onApply, onReset }: {
           <Field label="Months left" suffix="mo" value={months} onChange={setMonths} min={LOAN_HINTS.months[0]} max={LOAN_HINTS.months[1]} step="1" />
           <Field label="Original amount (optional)" suffix="$" value={original} onChange={setOriginal} min={LOAN_HINTS.balance[0]} max={LOAN_HINTS.balance[1]} required={false} />
           <div className="flex gap-2 sm:col-span-2">
-            <button type="submit" className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white">Recalculate</button>
-            <button type="button" onClick={reset} className="rounded-full border border-[#e2e2e2] bg-white px-5 py-2.5 text-sm font-medium">Back to Alex’s loan</button>
+            <button type="submit" className="skeu rounded-full px-6 py-2.5 text-sm font-semibold">Recalculate</button>
+            <button type="button" onClick={reset} className="rounded-full border border-line bg-panel px-5 py-2.5 text-sm font-medium">Back to Alex’s loan</button>
           </div>
           <p className="copy text-xs text-grey sm:col-span-2">Your numbers stay in this browser tab. The plan, chart, payoff dates and answers all recompute from them.</p>
         </form>

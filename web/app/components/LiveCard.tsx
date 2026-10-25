@@ -21,7 +21,7 @@ export function LiveCard({ state, busy, onToggle }: { state: Loaded<Feed>; busy:
       <div className="flex items-center justify-between">
         <h2 className="text-xl tracking-tight">Live</h2>
         <span className="flex items-center gap-2 text-xs text-grey">
-          <span className={`h-2 w-2 rounded-full ${data?.running ? 'animate-pulse bg-accent' : 'bg-[#cfcfcf]'}`} />
+          <span className={`h-2 w-2 rounded-full ${data?.running ? 'animate-pulse bg-accent' : 'bg-track'}`} />
           {data?.running ? 'Demo running' : 'Demo stopped'}
         </span>
       </div>
@@ -38,7 +38,7 @@ export function LiveCard({ state, busy, onToggle }: { state: Loaded<Feed>; busy:
           <div className="mt-5 flex h-14 items-end gap-[3px]" role="img" aria-label="Last 30 round-ups">
             {bars.map((t) => (
               <button key={t.id} onClick={() => setPinned(t.id === items[0].id ? null : t.id)} aria-label={`${t.merchant} ${usd2(t.roundup)}`}
-                className={`flex-1 rounded-full transition-colors ${t.id === current.id ? 'bg-accent' : 'bg-[#dcdcdc] hover:bg-[#bdbdbd]'}`}
+                className={`flex-1 rounded-full transition-colors ${t.id === current.id ? 'bg-accent' : 'bg-track hover:bg-grey'}`}
                 style={{ height: `${Math.max(12, (t.roundup / max) * 100)}%` }} />
             ))}
           </div>
@@ -46,7 +46,7 @@ export function LiveCard({ state, busy, onToggle }: { state: Loaded<Feed>; busy:
       )}
       <div className="mt-5 flex items-center justify-center gap-4">
         <button onClick={() => go(idx + 1)} disabled={!current || idx >= items.length - 1} aria-label="Previous purchase" className="grid h-11 w-11 place-items-center rounded-full bg-soft"><ChevronLeft size={22} strokeWidth={1.5} /></button>
-        <button onClick={onToggle} disabled={busy || !data} aria-label={data?.running ? 'Stop the demo feed' : 'Start the demo feed'} className="grid h-14 w-14 place-items-center rounded-full bg-ink text-white">
+        <button onClick={onToggle} disabled={busy || !data} aria-label={data?.running ? 'Stop the demo feed' : 'Start the demo feed'} className="skeu grid h-14 w-14 place-items-center rounded-full">
           {data?.running ? <Pause size={24} strokeWidth={1.5} /> : <Play size={24} strokeWidth={1.5} />}
         </button>
         <button onClick={() => go(idx - 1)} disabled={!current || idx <= 0} aria-label="Next purchase" className="grid h-11 w-11 place-items-center rounded-full bg-soft"><ChevronRight size={22} strokeWidth={1.5} /></button>

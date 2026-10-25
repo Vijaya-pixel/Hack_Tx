@@ -14,7 +14,7 @@ export function ErrorNote({ message, retry }: { message: string; retry?: () => v
     <div role="alert" className="rounded-2xl bg-soft p-4 text-sm">
       <p className="font-medium">We couldn’t load this.</p>
       <p className="mt-1 text-grey">{message}</p>
-      {retry && <button onClick={retry} className="mt-3 rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-white">Try again</button>}
+      {retry && <button onClick={retry} className="mt-3 rounded-full bg-fill px-4 py-1.5 text-sm font-medium text-onfill">Try again</button>}
     </div>
   );
 }
@@ -27,7 +27,7 @@ export function Segmented<T extends string | number>({ options, value, onChange,
     <div role="group" aria-label={label} className="flex rounded-full bg-soft p-1">
       {options.map((o) => (
         <button key={String(o.value)} onClick={() => onChange(o.value)} aria-pressed={value === o.value}
-          className={`flex-1 rounded-full px-2 py-2 text-sm font-medium transition-colors ${value === o.value ? 'bg-ink text-white' : 'text-ink hover:bg-white'}`}>
+          className={`flex-1 rounded-full px-2 py-2 text-sm font-medium transition-colors ${value === o.value ? 'bg-fill text-onfill' : 'text-ink hover:bg-panel'}`}>
           {o.label}
         </button>
       ))}
@@ -38,8 +38,8 @@ export function Segmented<T extends string | number>({ options, value, onChange,
 export function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
     <button role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)}
-      className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${on ? 'bg-ink' : 'bg-[#d4d4d4]'}`}>
-      <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-all ${on ? 'left-7' : 'left-1'}`} />
+      className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${on ? 'bg-fill' : 'bg-track'}`}>
+      <span className={`absolute top-1 h-6 w-6 rounded-full shadow transition-all ${on ? 'bg-onfill' : 'bg-white'} ${on ? 'left-7' : 'left-1'}`} />
     </button>
   );
 }

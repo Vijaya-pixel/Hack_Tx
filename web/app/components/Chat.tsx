@@ -3,6 +3,7 @@ import { Coins, HelpCircle, LifeBuoy, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { api, type Explanation, type Preset } from '@/lib/api';
 import { withQs } from '@/lib/loanQuery';
+import { DeleteButton } from './DeleteButton';
 
 const QUESTIONS: { id: Preset; text: string; icon: LucideIcon }[] = [
   { id: 'worth', text: 'Is this worth it?', icon: HelpCircle },
@@ -15,7 +16,8 @@ interface Msg { id: number; role: 'user' | 'assistant'; text: string; label?: st
 // A chat-style page. The questions are fixed presets, so every answer comes from /api/explain,
 // where the numbers are computed by the backend and checked before they are shown.
 export function Chat({ extra, name, loanQuery }: { extra: number; name?: string; loanQuery: string }) {
-  const [msgs, setMsgs] = useState<Msg[]>([{ id: 0, role: 'assistant', text: `Hi${name ? ` ${name.split(' ')[0]}` : ''}! I can explain how your round-ups help with your loan. Pick a question below.` }]);
+  const greeting: Msg = { id: 0, role: 'assistant', text: `Hi${name ? ` ${name.split(' ')[0]}` : ''}! I can explain how your round-ups help with your loan. Pick a question below.` };
+  const [msgs, setMsgs] = useState<Msg[]>([greeting]);
   const [busy, setBusy] = useState(false);
   const next = useRef(1);
   const end = useRef<HTMLDivElement>(null);
@@ -36,10 +38,14 @@ export function Chat({ extra, name, loanQuery }: { extra: number; name?: string;
 
   return (
     <div className="card flex h-[min(70vh,640px)] flex-col overflow-hidden">
+      <div className="flex items-center justify-between border-b border-line px-5 py-3 md:px-6">
+        <p className="label">Conversation</p>
+        <DeleteButton label="Clear chat" confirmLabel="Tap again to clear" disabled={busy || msgs.length <= 1} onConfirm={() => setMsgs([greeting])} />
+      </div>
       <div className="flex-1 space-y-4 overflow-y-auto p-5 md:p-6" aria-live="polite">
         {msgs.map((m) => (
           <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] rounded-3xl px-5 py-3 ${m.role === 'user' ? 'rounded-br-lg bg-ink text-white' : 'rounded-bl-lg bg-white'}`}>
+            <div className={`max-w-[85%] rounded-3xl px-5 py-3 ${m.role === 'user' ? 'rounded-br-lg bg-fill text-onfill' : 'rounded-bl-lg bg-panel'}`}>
               {m.loading ? (
                 <span role="status" aria-label="Getting your answer" className="flex gap-1.5 py-2">
                   {[0, 1, 2].map((i) => <span key={i} className="h-2 w-2 animate-bounce rounded-full bg-grey" style={{ animationDelay: `${i * 120}ms` }} />)}
@@ -55,14 +61,14 @@ export function Chat({ extra, name, loanQuery }: { extra: number; name?: string;
         ))}
         <div ref={end} />
       </div>
-      <div className="border-t border-[#eaeaea] bg-white p-4">
+      <div className="border-t border-line bg-panel p-4">
         <p className="label mb-2">Ask about your loan</p>
         <div className="flex flex-wrap gap-2">
           {QUESTIONS.map((q) => {
             const Icon = q.icon;
             return (
               <button key={q.id} onClick={() => ask(q)} disabled={busy}
-                className="flex items-center gap-2 rounded-full border border-[#e2e2e2] bg-white px-4 py-2.5 text-sm font-medium transition-colors hover:bg-ink hover:text-white">
+                className="flex items-center gap-2 rounded-full border border-line bg-panel px-4 py-2.5 text-sm font-medium transition-colors hover:bg-fill hover:text-onfill">
                 <Icon size={16} strokeWidth={1.5} />{q.text}
               </button>
             );
