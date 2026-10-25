@@ -1,12 +1,12 @@
 # Backend
 
 TypeScript API (Express). Database: **TigerData** (Postgres + TimescaleDB). Optional Solana for recording fingerprints.
-This is currently a clean base: health check, database connection, TigerData helpers and the chain adapter.
-The app's own routes and tables go in next.
+Contains the Toyota "next move" engine (`src/toyota/`) and a clean base: health check, database connection,
+TigerData helpers and the chain adapter.
 
     npm install
     npm run typecheck     # strict TypeScript
-    npm test              # 16 tests, no network needed
+    npm test              # 67 tests, no network needed
     npm start             # reads backend/.env automatically
 
 ## Your keys go in `backend/.env`
@@ -15,6 +15,28 @@ Copy `.env.example` to `.env` (it is git-ignored). Only `DATABASE_URL` is needed
 If you get a certificate error, add `PGSSL=insecure` (hackathon use only).
 
 Check it: `curl localhost:8787/api/health` should return `"database":"connected"`.
+
+## The Toyota engine (`src/toyota/`)
+All dollar figures come from plain code; there is no AI in the math. Customers and prices are synthetic, and the
+car-value model is a simple stated assumption, not a market quote.
+
+| File | What |
+|---|---|
+| `money.ts` | Loan payment, balance, payoff time, interest, lease payment, month arithmetic |
+| `vehicle.ts` | Car value model (stated assumptions) and fuel cost |
+| `customers.ts` | Five synthetic customers (Maya, Jake, Sam, Priya, Lena) and a small catalog |
+| `advice.ts` | Options, recommendation with its reason, next step, and the value-versus-owed timeline with what-if sliders |
+| `explain.ts` | Plain-language explanation built from the advice (template now; a model can reword it later) |
+
+| Method | Path | What |
+|---|---|---|
+| GET | `/api/customers`, `/api/customers/:id` | The synthetic customers |
+| GET | `/api/customers/:id/advice` | Options, recommendation, next step, assumptions |
+| GET | `/api/customers/:id/timeline` | Month-by-month value, amount owed and equity |
+| GET | `/api/customers/:id/explain` | Plain-language explanation |
+
+Optional query for advice, timeline and explain: `extraMiles` (-2000 to 3000 a month), `extraPayment` (0 to 2000), `today` (YYYY-MM-DD).
+The demo date is fixed at 2026-10-24 so the stories hold; set `DEMO_TODAY` to change it.
 
 ## Files
 | File | What |

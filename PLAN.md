@@ -17,6 +17,10 @@ Expectations: working prototype, synthetic data, responsible AI, new customer ex
 - Every figure shows its assumptions.
 - Synthetic data only.
 
+## Built so far (branch `toyota`)
+- Money engine, five synthetic customers, advice with reasons and next steps, a value-vs-owed timeline with what-if sliders, API routes, 67 tests.
+- Not built yet: Gemini explanation (with a number guard), TigerData readings, Solana advice receipts, frontend.
+
 ## Possible pieces (not decided)
 - TigerData for customers, vehicles, loans and payment history
 - Capital One Nessie as the bank data source, with a local fallback

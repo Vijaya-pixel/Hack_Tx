@@ -5,6 +5,10 @@ import type { Chain } from './types.ts';
 import type { Db } from './db.ts';
 import { createDbFromEnv } from './db.ts';
 import { createFakeChain, createMockChain, createSolanaChain } from './chain.ts';
+import { CUSTOMERS, customerById, currentPayment, type Customer } from './toyota/customers.ts';
+import { advise, timeline, type Scenario } from './toyota/advice.ts';
+import { explainTemplate } from './toyota/explain.ts';
+import { loanPayment, round0 } from './toyota/money.ts';
 
 export class HttpError extends Error {
   status: number;
@@ -12,7 +16,11 @@ export class HttpError extends Error {
 }
 export const bad = (msg: string): HttpError => new HttpError(400, msg);
 
-export interface AppOptions { db?: Db | null; chain?: Chain }
+// The demo customers are defined relative to this date, so the stories hold no matter when it is run.
+export const DEMO_TODAY = '2026-10-24';
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+export interface AppOptions { db?: Db | null; chain?: Chain; today?: () => string }
 
 // Wraps a route so errors (async or not) come back as JSON, never an HTML error page.
 export const wrap = (fn: (req: Request, res: Response) => Promise<unknown> | unknown): RequestHandler =>
@@ -24,7 +32,7 @@ export const wrap = (fn: (req: Request, res: Response) => Promise<unknown> | unk
     });
   };
 
-export function createApp({ db = null, chain = createFakeChain() }: AppOptions = {}): Express {
+export function createApp({ db = null, chain = createFakeChain(), today = () => process.env.DEMO_TODAY ?? DEMO_TODAY }: AppOptions = {}): Express {
   const app = express();
   app.use(express.json({ limit: '50kb' }));
 
@@ -36,7 +44,41 @@ export function createApp({ db = null, chain = createFakeChain() }: AppOptions =
     res.json({ ok: database !== 'error', database, chain: chain.kind });
   }));
 
-  // Add the app's routes here.
+  const now = (req: Request): string => {
+    const t = req.query.today;
+    if (t === undefined) return today();
+    if (typeof t !== 'string' || !ISO_DATE.test(t) || Number.isNaN(Date.parse(t))) throw bad('today must be a date like 2026-10-24.');
+    return t;
+  };
+  const num = (v: unknown, name: string, min: number, max: number): number => {
+    if (v === undefined || v === '') return 0;
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < min || n > max) throw bad(`${name} must be a number from ${min} to ${max}.`);
+    return n;
+  };
+  const scenario = (req: Request): Scenario => ({
+    extraMilesPerMonth: num(req.query.extraMiles, 'extraMiles', -2000, 3000),
+    extraPayment: num(req.query.extraPayment, 'extraPayment', 0, 2000),
+  });
+  const customer = (req: Request): Customer => {
+    const c = customerById(String(req.params.id));
+    if (!c) throw new HttpError(404, 'No customer with that id.');
+    return c;
+  };
+  const summary = (c: Customer) => ({
+    id: c.id, name: c.name, situation: c.situation, headline: c.headline, story: c.story,
+    vehicle: c.vehicle, kind: c.contract.kind, milesNow: c.milesNow, monthlyIncome: c.monthlyIncome,
+    monthlyPayment: round0(currentPayment(c, loanPayment)),
+  });
+
+  app.get('/api/customers', (_req, res) => { res.json(CUSTOMERS.map(summary)); });
+  app.get('/api/customers/:id', wrap((req, res) => { res.json({ ...summary(customer(req)), contract: customer(req).contract }); }));
+  app.get('/api/customers/:id/advice', wrap((req, res) => { res.json(advise(customer(req), now(req), scenario(req))); }));
+  app.get('/api/customers/:id/timeline', wrap((req, res) => { res.json(timeline(customer(req), now(req), scenario(req))); }));
+  app.get('/api/customers/:id/explain', wrap((req, res) => {
+    const c = customer(req);
+    res.json(explainTemplate(c, advise(c, now(req), scenario(req))));
+  }));
 
   app.use((_req, res) => { res.status(404).json({ error: 'Not found.' }); });
   // Bad JSON bodies and other framework errors also come back as JSON.
