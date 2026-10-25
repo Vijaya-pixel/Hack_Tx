@@ -22,7 +22,7 @@ describe('server skeleton', () => {
   test('health with no database says so, and is still ok', async () => {
     const s = await serve({ chain: createFakeChain() });
     const body = await (await fetch(`${s.base}/api/health`)).json();
-    assert.deepEqual(body, { ok: true, database: 'not configured', chain: 'fake' });
+    assert.deepEqual(body, { ok: true, database: 'not configured', chain: 'fake', llm: 'none' });
     s.close();
   });
 

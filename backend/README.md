@@ -6,7 +6,8 @@ TigerData helpers and the chain adapter.
 
     npm install
     npm run typecheck     # strict TypeScript
-    npm test              # 67 tests, no network needed
+    npm test              # 84 tests, no network needed
+npm run gemini:check  # confirms your Gemini key and model work
     npm start             # reads backend/.env automatically
 
 ## Your keys go in `backend/.env`
@@ -26,7 +27,8 @@ car-value model is a simple stated assumption, not a market quote.
 | `vehicle.ts` | Car value model (stated assumptions) and fuel cost |
 | `customers.ts` | Five synthetic customers (Maya, Jake, Sam, Priya, Lena) and a small catalog |
 | `advice.ts` | Options, recommendation with its reason, next step, and the value-versus-owed timeline with what-if sliders |
-| `explain.ts` | Plain-language explanation built from the advice (template now; a model can reword it later) |
+| `explain.ts` | Explanation: Gemini rewords it, a number guard rejects any figure not in the advice, and it falls back to a template |
+| `gemini.ts` | Small Gemini REST client (no SDK): model from `GEMINI_MODEL`, key in a header, 12 second timeout |
 
 | Method | Path | What |
 |---|---|---|
@@ -47,7 +49,7 @@ The demo date is fixed at 2026-10-24 so the stories hold; set `DEMO_TODAY` to ch
 | `src/chain.ts` | Chain adapter: real Solana devnet, a fake for tests, a labeled mock for UI work |
 | `src/fingerprint.ts` | Stable SHA-256 fingerprint of any JSON (same as `solana/lib.ts`) |
 
-Env: `DATABASE_URL`, `PGSSL`, `PORT` (8787), `CHAIN=mock` (UI work only; never for the real demo).
+Env: `GEMINI_API_KEY`, `GEMINI_MODEL`, `DATABASE_URL`, `PGSSL`, `PORT` (8787), `CHAIN=mock` (UI work only; never for the real demo).
 
 The server starts without Solana. To use the real chain, also run `npm install` in `../solana` (the backend loads
 those helpers only when it first needs them, and says so clearly if they are missing).

@@ -6,7 +6,8 @@
   "scripts": {
     "start": "tsx --env-file-if-exists=.env src/server.ts",
     "test": "node --import tsx --test \"test/*.test.ts\"",
-    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+    "gemini:check": "tsx --env-file-if-exists=.env scripts/check-gemini.ts"
   },
   "dependencies": {
     "express": "^4.21.0",

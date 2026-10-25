@@ -1,4 +1,4 @@
-import { describe, test, before, after } from 'node:test';
+import { describe, test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Server } from 'node:http';
 import { createApp } from '../src/server.ts';
@@ -55,5 +55,31 @@ describe('customer routes', () => {
   test('a different "today" moves the story', async () => {
     const early = await get('/api/customers/maya/advice?today=2026-04-24');
     assert.equal(early.body.facts.monthsLeft, 9);
+  });
+});
+
+import { clearExplanationCache } from '../src/toyota/explain.ts';
+describe('explain route with a model plugged in', () => {
+  beforeEach(() => clearExplanationCache());
+  const GOOD = "Maya, you are on track to go about 6,000 miles over, which would cost about $1,895 to return the car. A RAV4 Hybrid lease is about $449 a month, which is $46 more than now, but you would spend $44 less on fuel each month. Your next step is to see your RAV4 Hybrid offer.";
+  const run = async (reply: string | Error) => {
+    const s: Server = await new Promise((res) => { const x = createApp({ today: () => '2026-10-24', llm: { complete: async () => { if (reply instanceof Error) throw reply; return reply; } } }).listen(0, () => res(x)); });
+    const a = s.address(); if (!a || typeof a === 'string') throw new Error('no port');
+    const b = `http://127.0.0.1:${a.port}`;
+    const out = { health: await (await fetch(`${b}/api/health`)).json(), explain: await (await fetch(`${b}/api/customers/maya/explain`)).json() };
+    s.close(); return out;
+  };
+  test('a good model reply is served, and health says a model is on', async () => {
+    const r = await run(GOOD);
+    assert.equal(r.health.llm, 'gemini');
+    assert.equal(r.explain.source, 'model');
+  });
+  test('a bad reply or a failing model still gives the customer an answer', async () => {
+    const bad = await run(GOOD.replace('$44 less', '$75 less'));
+    assert.equal(bad.explain.source, 'template');
+    assert.deepEqual(bad.explain.rejected, ['75']);
+    const down = await run(new Error('Gemini returned 503: overloaded'));
+    assert.equal(down.explain.source, 'template');
+    assert.ok(down.explain.text.length > 50);
   });
 });
