@@ -67,7 +67,7 @@ export function templateExplanation(f: Facts): string {
   switch (f.preset) {
     case 'worth': return `${avg} ${plan} ${saved} Round-ups go to principal, which is why they save interest.`;
     case 'double': return `Doubling it: ${plan} ${saved} Round-ups go to principal, which is why they save interest.`;
-    case 'tight': return `${f.lines[5]} ${f.lines[6]} You can also lower or pause round-ups any time without penalty. Your required payment does not change.`;
+    case 'tight': return `${f.lines[5]} ${f.lines[6]} Round-ups are optional extra money, so you can lower them whenever you like.`;
   }
 }
 

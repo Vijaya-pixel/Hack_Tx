@@ -35,6 +35,8 @@ const KINDS: Record<string, Kind> = {
   gas: { merchants: ['Gulf Stop', 'Quick Fuel'], category: 'Gas', min: 3600, max: 5900 },
   dining: { merchants: ['Bella Pasta', 'Smokehouse Grill'], category: 'Dining', min: 2400, max: 5800 },
   pharmacy: { merchants: ['CityCare Pharmacy'], category: 'Pharmacy', min: 700, max: 2600 },
+  convenience: { merchants: ['Corner Mart', 'QuickStop'], category: 'Convenience', min: 250, max: 1450 },
+  online: { merchants: ['ShopNow', 'PageTurner Books'], category: 'Shopping', min: 1500, max: 6400 },
   streaming: { merchants: ['StreamBox'], category: 'Subscriptions', min: 999, max: 1599 },
 };
 
@@ -68,6 +70,8 @@ export function generateTransactions(now: Date = new Date(), weeks = SEED_WEEKS)
     if (dow === 3 || dow === 6) out.push(make(r, 'groceries', at(17.5)));
     if (dow === 1 || (dow === 5 && r() < 0.4)) out.push(make(r, 'gas', at(18)));
     if ((dow === 5 || dow === 6) && r() < 0.5) out.push(make(r, 'dining', at(19.5)));
+    if (r() < 0.55) out.push(make(r, 'convenience', at(14)));
+    if (r() < 0.25) out.push(make(r, 'online', at(21)));
     if (r() < 0.06) out.push(make(r, 'pharmacy', at(15)));
     if (d % 28 === 3) out.push(make(r, 'streaming', at(9)));
   }
@@ -76,5 +80,5 @@ export function generateTransactions(now: Date = new Date(), weeks = SEED_WEEKS)
 
 // One random purchase for the live demo feed.
 export function randomPurchase(now: Date = new Date(), r: () => number = Math.random): Tx {
-  return make(r, pick(r, ['coffee', 'lunch', 'groceries', 'gas', 'dining', 'coffee', 'lunch']), now);
+  return make(r, pick(r, ['coffee', 'lunch', 'groceries', 'gas', 'dining', 'convenience', 'coffee', 'lunch']), now);
 }
