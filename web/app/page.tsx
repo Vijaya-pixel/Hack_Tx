@@ -1,84 +1,57 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { api, type Customer, type Explanation, type Feed, type HardshipKind, type Health, type Plan, type Preset, type Roundups } from '@/lib/api';
+import { ArrowUpRight } from 'lucide-react';
+import Link from 'next/link';
+import type { Roundups } from '@/lib/api';
+import { usd, usd2 } from '@/lib/format';
 import { useApi } from '@/lib/useApi';
-import { AskCard } from './components/AskCard';
-import { Header } from './components/Header';
-import { HardshipDialog } from './components/HardshipDialog';
-import { LiveCard } from './components/LiveCard';
-import { PayoffCard } from './components/PayoffCard';
-import { PlanCards, buildOptions } from './components/PlanCards';
-import { Sidebar } from './components/Sidebar';
+import { Car } from './components/Car';
+import { Gauge } from './components/PayoffCard';
 import { RoundupsCard } from './components/RoundupsCard';
+import { useShared } from './components/Shell';
+import { Card, ErrorNote, Skeleton } from './components/ui';
 
-const MODE_NAMES: Record<string, string> = { tigerdata: 'TigerData', postgres: 'Postgres', memory: 'demo memory', cortex: 'Snowflake Cortex', template: 'built-in template', snowflake: 'Snowflake', local: 'local seed' };
+const LINKS = [
+  { href: '/plans', title: 'Payoff plans', text: 'Compare extra-per-week plans and see months and interest saved.' },
+  { href: '/live', title: 'Live feed', text: 'Watch purchases round up as they happen.' },
+  { href: '/ask', title: 'Ask', text: 'Plain-language answers about your loan.' },
+  { href: '/help', title: 'Help', text: 'Request a pause, bi-weekly payments or a credit.' },
+];
 
-function useDebounced<T>(value: T, ms: number): T {
-  const [v, setV] = useState(value);
-  useEffect(() => { const t = setTimeout(() => setV(value), ms); return () => clearTimeout(t); }, [value, ms]);
-  return v;
-}
-
-export default function Dashboard() {
-  const customer = useApi<Customer>('/api/customer');
-  const health = useApi<Health>('/api/health', 10_000);
-  const feed = useApi<Feed>('/api/feed?limit=30', 3000);
-  const running = feed.data?.running ?? false;
+export default function Home() {
+  const { customer, running } = useShared();
   const roundups = useApi<Roundups>('/api/roundups?range=12w', running ? 4000 : 0);
-
-  // The chosen extra per week; round-ups OFF plans with $0.
-  const [extra, setExtra] = useState<number | null>(null);
-  const [enabled, setEnabled] = useState(true);
-  const debounced = useDebounced(extra, 150);
-  const plan = useApi<Plan>(`/api/plan${debounced === null ? '' : `?extraPerWeek=${enabled ? debounced : 0}`}`);
-  const base = useApi<Plan>('/api/plan'); // Alex's real average and the bi-weekly effect
-  useEffect(() => { if (extra === null && base.data) setExtra(base.data.avgPerWeek); }, [extra, base.data]);
-  const others = { 0: useApi<Plan>('/api/plan?extraPerWeek=0'), 10: useApi<Plan>('/api/plan?extraPerWeek=10'), 25: useApi<Plan>('/api/plan?extraPerWeek=25'), 50: useApi<Plan>('/api/plan?extraPerWeek=50') };
-  const options = buildOptions(base.data, others);
-
-  const [preset, setPreset] = useState<Preset>('worth');
-  const settled = useDebounced(enabled ? extra : 0, 400);
-  const explain = useApi<Explanation>(settled === null ? null : `/api/explain?preset=${preset}&extraPerWeek=${settled}`);
-
-  const [dialog, setDialog] = useState<HardshipKind | null>(null);
-  const [demoBusy, setDemoBusy] = useState(false);
-  async function toggleDemo() {
-    setDemoBusy(true);
-    try { await api(`/api/simulator/${running ? 'stop' : 'start'}`, { method: 'POST' }); feed.reload(); }
-    finally { setDemoBusy(false); }
-  }
-
+  const c = customer.data;
   return (
-    <div id="top">
-      <Header name={customer.data?.name} feed={feed.data} onHelp={() => setDialog('biweekly')} />
-      <div className="mx-auto grid max-w-[1360px] gap-10 px-4 py-8 md:px-8 lg:grid-cols-[280px_1fr]">
-        <Sidebar plan={base.data} extra={extra ?? 0} onExtra={setExtra} enabled={enabled} onEnabled={setEnabled}
-          dialogOpen={dialog !== null} onRequest={setDialog} onTight={(v) => setDialog(v ? 'biweekly' : null)} />
-        <main className="min-w-0 space-y-6">
-          <section id="plans" className="space-y-6">
-            <div className="flex items-baseline justify-between gap-3">
-              <h1 className="text-3xl font-medium tracking-tight md:text-4xl">Payoff plans <span className="font-light text-grey">({options.length})</span></h1>
-              <p className="hidden text-sm text-grey sm:block">Pick one with the arrow</p>
-            </div>
-            <PlanCards options={options} extra={extra ?? 0} onSelect={(v) => { setExtra(v); setEnabled(true); }} onBiweekly={() => setDialog('biweekly')} />
-          </section>
-          <PayoffCard id="loan" customer={customer} plan={plan} />
-          <RoundupsCard state={roundups} />
-          <div className="grid items-start gap-6 md:grid-cols-2">
-            <div id="live" className="min-w-0"><LiveCard state={feed} busy={demoBusy} onToggle={toggleDemo} /></div>
-            <div className="min-w-0"><AskCard id="ask" state={explain} preset={preset} onPick={setPreset} /></div>
-          </div>
-        </main>
+    <div className="space-y-6">
+      <h1 className="text-3xl tracking-tight md:text-4xl">{c ? `Hi, ${c.name.split(' ')[0]}` : 'Welcome'}</h1>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          {customer.error && !c ? <ErrorNote message={customer.error} retry={customer.reload} /> : !c ? <Skeleton className="h-80" /> : (
+            <>
+              <p className="label">Your loan</p>
+              <h2 className="mt-1 text-2xl tracking-tight">{c.vehicle}</h2>
+              <p className="text-sm text-grey">{usd(c.balance)} · {c.apr}% APR · {c.monthsRemaining} months left</p>
+              <div className="mx-auto my-4 w-4/5"><Car /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-3xl bg-white p-4"><p className="label">Monthly payment</p><p className="big mt-3 text-3xl">{usd2(c.monthlyPayment)}</p></div>
+                <div className="rounded-3xl bg-white p-4"><p className="label">Loan paid off</p><div className="mt-2"><Gauge pct={c.percentPaid} /></div></div>
+              </div>
+            </>
+          )}
+        </Card>
+        <RoundupsCard state={roundups} />
       </div>
-      <HardshipDialog kind={dialog} plan={base.data} onKind={setDialog} onClose={() => setDialog(null)} />
-      <footer className="copy mx-auto max-w-[1360px] px-4 pb-8 text-xs text-grey md:px-8">
-        <p>Concept for Toyota Financial Services. Not an official Toyota app. All data is synthetic.</p>
-        {health.data && (
-          <p className="mt-1">
-            Transactions: {MODE_NAMES[health.data.database.mode] ?? health.data.database.mode} · Customer: {MODE_NAMES[health.data.snowflake.customerSource] ?? health.data.snowflake.customerSource} · Explanations: {MODE_NAMES[health.data.ai.mode] ?? health.data.ai.mode}
-          </p>
-        )}
-      </footer>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {LINKS.map((l) => (
+          <Link key={l.href} href={l.href} className="card group flex flex-col justify-between gap-6 p-6">
+            <div>
+              <h2 className="text-lg tracking-tight">{l.title}</h2>
+              <p className="copy mt-1 text-[13px] text-grey">{l.text}</p>
+            </div>
+            <span className="grid h-10 w-10 place-items-center rounded-full border border-[#e2e2e2] bg-white transition-colors group-hover:bg-ink group-hover:text-white"><ArrowUpRight size={18} strokeWidth={1.5} /></span>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }

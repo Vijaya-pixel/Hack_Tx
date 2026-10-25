@@ -8,7 +8,7 @@ import { AnimatedNumber, Card, ErrorNote, Segmented, Skeleton } from './ui';
 
 const ARC = Math.PI * 80; // length of the semicircle gauge (radius 80)
 
-function Gauge({ pct }: { pct: number }) {
+export function Gauge({ pct }: { pct: number }) {
   return (
     <div className="relative mx-auto w-full max-w-[200px]">
       <svg viewBox="0 0 200 110" className="w-full" role="img" aria-label={`${pct}% of the loan paid off`}>

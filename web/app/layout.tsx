@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Poppins } from 'next/font/google';
 import './globals.css';
+import { Shell } from './components/Shell';
 
 // Poppins everywhere: 500 for headings, labels and the wordmark, 400 for body text.
 const poppins = Poppins({ subsets: ['latin'], weight: ['300', '400', '500', '600'], variable: '--font-poppins', display: 'swap' });
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={poppins.variable}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased"><Shell>{children}</Shell></body>
     </html>
   );
 }

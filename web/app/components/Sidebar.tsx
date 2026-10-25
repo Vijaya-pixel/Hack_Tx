@@ -1,6 +1,7 @@
 'use client';
 import { ChevronRight, ShieldCheck, SlidersHorizontal } from 'lucide-react';
-import type { HardshipKind, Plan } from '@/lib/api';
+import Link from 'next/link';
+import type { Plan } from '@/lib/api';
 import { usd2 } from '@/lib/format';
 import { Segmented, Switch } from './ui';
 
@@ -8,15 +9,14 @@ type Quick = 0 | 10 | 'avg' | 25 | 50;
 const QUICK: { value: Quick; label: string }[] = [
   { value: 0, label: '$0' }, { value: 10, label: '$10' }, { value: 'avg', label: 'Avg' }, { value: 25, label: '$25' }, { value: 50, label: '$50' },
 ];
-const REQUESTS: { kind: HardshipKind; label: string; sub: string }[] = [
+const REQUESTS: { kind: string; label: string; sub: string }[] = [
   { kind: 'biweekly', label: 'Bi-weekly payments', sub: 'Half the payment every 2 weeks' },
   { kind: 'pause', label: 'Payment pause', sub: 'A short breather' },
   { kind: 'credit', label: 'Maintenance credit', sub: '$50 toward upkeep' },
 ];
 
-export function Sidebar({ plan, extra, onExtra, enabled, onEnabled, dialogOpen, onRequest, onTight }: {
+export function Sidebar({ plan, extra, onExtra, enabled, onEnabled }: {
   plan: Plan | null; extra: number; onExtra: (v: number) => void; enabled: boolean; onEnabled: (v: boolean) => void;
-  dialogOpen: boolean; onRequest: (k: HardshipKind) => void; onTight: (open: boolean) => void;
 }) {
   const selected: Quick | null = !plan ? null : (QUICK.find((q) => Math.abs((q.value === 'avg' ? plan.avgPerWeek : q.value) - extra) < 0.005)?.value ?? null);
   const max = plan?.maxExtraPerWeek ?? 100;
@@ -53,23 +53,23 @@ export function Sidebar({ plan, extra, onExtra, enabled, onEnabled, dialogOpen, 
         <ul className="space-y-2">
           {REQUESTS.map((r) => (
             <li key={r.kind}>
-              <button onClick={() => onRequest(r.kind)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[#e6e6e6] bg-white p-4 text-left transition-colors hover:border-ink">
+              <Link href={`/help#${r.kind}`} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[#e6e6e6] bg-white p-4 text-left transition-colors hover:border-ink">
                 <span className="text-[15px]">{r.label}<span className="block text-xs text-grey">{r.sub}</span></span>
                 <ChevronRight size={18} strokeWidth={1.5} className="shrink-0 text-grey" />
-              </button>
+              </Link>
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="flex items-center gap-4 rounded-3xl bg-toyota p-5 text-white">
+      <Link href="/help" className="flex items-center gap-4 rounded-3xl bg-toyota p-5 text-white">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white text-toyota"><ShieldCheck size={24} strokeWidth={1.5} /></span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-semibold leading-tight">Money is tight?</h2>
+          <h2 className="text-lg leading-tight">Money is tight?</h2>
           <p className="text-xs text-white/80">We have lighter options.</p>
         </div>
-        <Switch on={dialogOpen} onChange={onTight} label="Open the request panel" />
-      </section>
+        <ChevronRight size={20} strokeWidth={1.5} />
+      </Link>
     </aside>
   );
 }
