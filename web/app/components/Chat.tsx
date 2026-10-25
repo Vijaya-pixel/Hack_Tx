@@ -2,6 +2,7 @@
 import { Coins, HelpCircle, LifeBuoy, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { api, type Explanation, type Preset } from '@/lib/api';
+import { withQs } from '@/lib/loanQuery';
 
 const QUESTIONS: { id: Preset; text: string; icon: LucideIcon }[] = [
   { id: 'worth', text: 'Is this worth it?', icon: HelpCircle },
@@ -13,7 +14,7 @@ interface Msg { id: number; role: 'user' | 'assistant'; text: string; label?: st
 
 // A chat-style page. The questions are fixed presets, so every answer comes from /api/explain,
 // where the numbers are computed by the backend and checked before they are shown.
-export function Chat({ extra, name }: { extra: number; name?: string }) {
+export function Chat({ extra, name, loanQuery }: { extra: number; name?: string; loanQuery: string }) {
   const [msgs, setMsgs] = useState<Msg[]>([{ id: 0, role: 'assistant', text: `Hi${name ? ` ${name.split(' ')[0]}` : ''}! I can explain how your round-ups help with your loan. Pick a question below.` }]);
   const [busy, setBusy] = useState(false);
   const next = useRef(1);
@@ -26,7 +27,7 @@ export function Chat({ extra, name }: { extra: number; name?: string }) {
     const userId = next.current++, botId = next.current++;
     setMsgs((m) => [...m, { id: userId, role: 'user', text: q.text }, { id: botId, role: 'assistant', text: '', loading: true }]);
     try {
-      const r = await api<Explanation>(`/api/explain?preset=${q.id}&extraPerWeek=${extra}`);
+      const r = await api<Explanation>(withQs(`/api/explain?preset=${q.id}&extraPerWeek=${extra}`, loanQuery));
       setMsgs((m) => m.map((x) => (x.id === botId ? { id: botId, role: 'assistant', text: r.text, label: r.source === 'cortex' ? 'Snowflake Cortex' : 'Standard', why: r.rejected } : x)));
     } catch (e) {
       setMsgs((m) => m.map((x) => (x.id === botId ? { id: botId, role: 'assistant', text: `Sorry, I couldn’t get that answer. ${(e as Error).message}` } : x)));

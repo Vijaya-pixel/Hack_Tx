@@ -7,6 +7,7 @@ import type { Store } from './store.ts';
 import type { Simulator } from './simulator.ts';
 import { CUSTOMER_ID, weekStart } from './seed.ts';
 import { HARDSHIP_KINDS } from './customers.ts';
+import { withPayment } from './customers.ts';
 import type { Customer, CustomerRepo, HardshipKind } from './customers.ts';
 import { explain, PRESETS } from './explain.ts';
 import type { Preset } from './explain.ts';
@@ -38,6 +39,28 @@ function parseExtra(raw: unknown, fallback: number): number {
   return n;
 }
 
+// Optional "try your own loan" values on the query string. Anything missing keeps Alex's value.
+export const LOAN_LIMITS = { balance: [1000, 200000], apr: [0, 30], months: [6, 120] } as const;
+interface LoanOverride { balance?: number; apr?: number; monthsRemaining?: number; originalAmount?: number }
+
+function loanOverride(q: Request['query']): LoanOverride | null {
+  const read = (key: string, label: string, min: number, max: number): number | undefined => {
+    const raw = q[key];
+    if (raw === undefined || raw === '') return undefined;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < min || n > max) throw new HttpError(400, `${label} must be a number from ${min} to ${max}`);
+    return n;
+  };
+  const balance = read('balance', 'balance', ...LOAN_LIMITS.balance);
+  const apr = read('apr', 'apr', ...LOAN_LIMITS.apr);
+  const months = read('months', 'months', ...LOAN_LIMITS.months);
+  const originalAmount = read('original', 'original', ...LOAN_LIMITS.balance);
+  if (months !== undefined && !Number.isInteger(months)) throw new HttpError(400, 'months must be a whole number');
+  if (balance === undefined && apr === undefined && months === undefined && originalAmount === undefined) return null;
+  if (originalAmount !== undefined && balance !== undefined && originalAmount < balance) throw new HttpError(400, 'original must be at least the balance');
+  return { balance, apr, monthsRemaining: months, originalAmount };
+}
+
 const curve = (p: Payoff) => p.schedule.map((s) => ({ month: s.month, balance: roundMoney(s.balance) }));
 
 export function createApp(deps: Deps) {
@@ -54,8 +77,19 @@ export function createApp(deps: Deps) {
   };
 
   // Alex's real weekly average from the store, and the plan built from it.
-  async function planFor(rawExtra: unknown, multiplier = 1) {
-    const [c, summary] = await Promise.all([customer(), deps.store.roundups(CUSTOMER_ID, now())]);
+  // The customer, with any values the judge typed in replacing Alex's. `custom` says whether that happened.
+  async function customerFor(q: Request['query']): Promise<{ c: Customer; custom: boolean; percent: number | null }> {
+    const stored = await customer();
+    const o = loanOverride(q);
+    if (!o) return { c: stored, custom: false, percent: percentPaid(stored.originalAmount, stored.balance) };
+    const balance = o.balance ?? stored.balance;
+    const c = withPayment({ ...stored, balance, apr: o.apr ?? stored.apr, monthsRemaining: o.monthsRemaining ?? stored.monthsRemaining, originalAmount: o.originalAmount ?? balance });
+    // Without an original amount we can't say how much is paid off.
+    return { c, custom: true, percent: o.originalAmount === undefined ? null : percentPaid(o.originalAmount, balance) };
+  }
+
+  async function planFor(rawExtra: unknown, q: Request['query'], multiplier = 1) {
+    const [{ c }, summary] = await Promise.all([customerFor(q), deps.store.roundups(CUSTOMER_ID, now())]);
     const avg = summary.avgPerWeekCents / 100;
     const extra = Math.min(MAX_EXTRA, parseExtra(rawExtra, Math.min(MAX_EXTRA, avg)) * multiplier);
     const pay = c.monthlyPayment;
@@ -74,9 +108,9 @@ export function createApp(deps: Deps) {
     });
   });
 
-  app.get('/api/customer', async (_req, res) => {
-    const c = await customer();
-    res.json({ ...c, monthlyPayment: roundMoney(c.monthlyPayment), percentPaid: percentPaid(c.originalAmount, c.balance), source: deps.repo.source });
+  app.get('/api/customer', async (req, res) => {
+    const { c, custom, percent } = await customerFor(req.query);
+    res.json({ ...c, monthlyPayment: roundMoney(c.monthlyPayment), percentPaid: percent, custom, source: custom ? 'custom' : deps.repo.source });
   });
 
   app.get('/api/roundups', async (req, res) => {
@@ -118,7 +152,7 @@ export function createApp(deps: Deps) {
   app.post('/api/simulator/stop', (_req, res) => { deps.simulator.stop(); res.json({ running: false }); });
 
   app.get('/api/plan', async (req, res) => {
-    const { c, avg, extra, plan, bi } = await planFor(req.query.extraPerWeek);
+    const { c, avg, extra, plan, bi } = await planFor(req.query.extraPerWeek, req.query);
     res.json({
       extraPerWeek: roundMoney(extra),
       avgPerWeek: roundMoney(avg),
@@ -134,7 +168,7 @@ export function createApp(deps: Deps) {
   app.get('/api/explain', async (req, res) => {
     const preset = String(req.query.preset ?? 'worth') as Preset;
     if (!PRESETS.includes(preset)) throw new HttpError(400, `preset must be one of ${PRESETS.join(', ')}`);
-    const { c, avg, extra, plan, bi } = await planFor(req.query.extraPerWeek, preset === 'double' ? 2 : 1);
+    const { c, avg, extra, plan, bi } = await planFor(req.query.extraPerWeek, req.query, preset === 'double' ? 2 : 1);
     const out = await explain({ customer: c, preset, extraPerWeek: roundMoney(extra), avgPerWeek: roundMoney(avg), plan, biweekly: bi }, deps.snowflake, deps.cortexModel);
     res.json({ ...out, extraPerWeek: roundMoney(extra) });
   });

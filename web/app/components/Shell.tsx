@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { api, type Customer, type Feed, type Health, type Plan } from '@/lib/api';
+import { loanQs, withQs, type LoanInput } from '@/lib/loanQuery';
 import { useApi, type Loaded } from '@/lib/useApi';
 import { Header } from './Header';
 
@@ -19,6 +20,9 @@ interface Shared {
   running: boolean;
   demoBusy: boolean;
   toggleDemo: () => void;
+  loan: LoanInput | null; // typed-in loan values, or null for Alex's
+  setLoan: (l: LoanInput | null) => void;
+  loanQuery: string;
   base: Loaded<Plan>; // Alex's real average and the bi-weekly effect
   plan: Loaded<Plan>; // the plan for the chosen extra
   extra: number;
@@ -37,7 +41,9 @@ const MODE_NAMES: Record<string, string> = { tigerdata: 'TigerData', postgres: '
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const customer = useApi<Customer>('/api/customer');
+  const [loan, setLoan] = useState<LoanInput | null>(null);
+  const loanQuery = loanQs(loan);
+  const customer = useApi<Customer>(withQs('/api/customer', loanQuery));
   const health = useApi<Health>('/api/health', 10_000);
   const feed = useApi<Feed>('/api/feed?limit=30', 3000);
   const running = feed.data?.running ?? false;
@@ -50,13 +56,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   const [chosen, setChosen] = useState<number | null>(null);
   const [enabled, setEnabled] = useState(true);
-  const base = useApi<Plan>('/api/plan');
+  const base = useApi<Plan>(withQs('/api/plan', loanQuery));
   const extra = chosen ?? base.data?.avgPerWeek ?? 0;
   const debounced = useDebounced(extra, 150);
-  const plan = useApi<Plan>(base.data ? `/api/plan?extraPerWeek=${enabled ? debounced : 0}` : null);
+  const plan = useApi<Plan>(base.data ? withQs(`/api/plan?extraPerWeek=${enabled ? debounced : 0}`, loanQuery) : null);
 
   return (
-    <Ctx.Provider value={{ customer, feed, running, demoBusy, toggleDemo, base, plan, extra, setExtra: setChosen, enabled, setEnabled }}>
+    <Ctx.Provider value={{ customer, loan, setLoan, loanQuery, feed, running, demoBusy, toggleDemo, base, plan, extra, setExtra: setChosen, enabled, setEnabled }}>
       <Header name={customer.data?.name} feed={feed.data} path={path} />
       <div className="mx-auto max-w-[1360px] px-4 py-8 md:px-8">{children}</div>
       <footer className="mx-auto max-w-[1360px] px-4 pb-8 text-xs text-grey md:px-8">

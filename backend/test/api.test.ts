@@ -43,6 +43,29 @@ describe('API in fallback mode', () => {
     assert.equal(body.percentPaid, 18.8);
   });
 
+  test('a typed-in loan recomputes the payment, plan and explanation', async () => {
+    const c = (await api.get('/api/customer?balance=15000&apr=0&months=30')).body;
+    assert.equal(c.custom, true);
+    assert.equal(c.monthlyPayment, 500);
+    assert.equal(c.percentPaid, null);
+    assert.equal((await api.get('/api/customer?balance=15000&original=20000')).body.percentPaid, 25);
+    const plan = (await api.get('/api/plan?extraPerWeek=0&balance=15000&apr=0&months=30')).body;
+    assert.equal(plan.standard.months, 30);
+    assert.equal(plan.standard.totalInterest, 0);
+    assert.equal(plan.standard.schedule[0].balance, 15000);
+    const ex = (await api.get('/api/explain?extraPerWeek=10&balance=15000&apr=0&months=30')).body;
+    assert.match(ex.text, /April 2029/); // 30 months from the test clock
+    assert.equal((await api.get('/api/customer')).body.custom, false);
+  });
+
+  test('bad loan values are rejected with a clear message', async () => {
+    for (const q of ['balance=5', 'balance=abc', 'apr=31', 'apr=-1', 'months=2', 'months=12.5', 'balance=9000&original=5000']) {
+      const r = await api.get(`/api/plan?${q}`);
+      assert.equal(r.status, 400, q);
+      assert.ok(r.body.error);
+    }
+  });
+
   test('roundups returns weekly bars and the real average', async () => {
     const { body } = await api.get('/api/roundups?range=12w');
     assert.equal(body.weeks, 12);

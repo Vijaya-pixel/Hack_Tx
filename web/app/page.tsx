@@ -8,6 +8,7 @@ import { Car } from './components/Car';
 import { Gauge } from './components/PayoffCard';
 import { RoundupsCard } from './components/RoundupsCard';
 import { useShared } from './components/Shell';
+import { LoanForm } from './components/LoanForm';
 import { Card, ErrorNote, Skeleton } from './components/ui';
 
 const LINKS = [
@@ -18,7 +19,7 @@ const LINKS = [
 ];
 
 export default function Home() {
-  const { customer, running } = useShared();
+  const { customer, running, loan, setLoan } = useShared();
   const roundups = useApi<Roundups>('/api/roundups?range=12w', running ? 4000 : 0);
   const c = customer.data;
   return (
@@ -34,8 +35,9 @@ export default function Home() {
               <div className="mx-auto my-4 w-4/5"><Car /></div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-3xl bg-white p-4"><p className="label">Monthly payment</p><p className="big mt-3 text-3xl">{usd2(c.monthlyPayment)}</p></div>
-                <div className="rounded-3xl bg-white p-4"><p className="label">Loan paid off</p><div className="mt-2"><Gauge pct={c.percentPaid} /></div></div>
+                <div className="rounded-3xl bg-white p-4"><p className="label">Loan paid off</p><div className="mt-2">{c.percentPaid === null ? <p className="copy text-xs text-grey">Add the original amount to see this.</p> : <Gauge pct={c.percentPaid} />}</div></div>
               </div>
+              <LoanForm customer={c} active={loan !== null} onApply={setLoan} onReset={() => setLoan(null)} />
             </>
           )}
         </Card>
