@@ -3,8 +3,10 @@
 import type { Llm } from './explain.ts';
 
 type Env = Record<string, string | undefined>;
-// The strongest Gemini model we know of. Set GEMINI_MODEL in .env to change it (for example gemini-2.5-flash for faster, cheaper answers).
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro';
+// The best model a free-tier key could use when this was set up (Pro models need a paid plan, and the 2.5 models are closed to new keys).
+// Set GEMINI_MODEL in .env to change it. If the first model is busy or fails, the backups below are tried in order.
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
+export const BACKUP_GEMINI_MODELS = ['gemini-3-flash-preview'];
 
 export interface GeminiOptions {
   apiKey: string;
@@ -19,13 +21,13 @@ interface GeminiResponse {
   error?: { message?: string };
 }
 
-export function createGeminiLlm({ apiKey, model = DEFAULT_GEMINI_MODEL, timeoutMs = 25_000, fetchFn = fetch }: GeminiOptions): Llm {
+export function createGeminiLlm({ apiKey, model = DEFAULT_GEMINI_MODEL, timeoutMs = 20_000, fetchFn = fetch }: GeminiOptions): Llm {
   if (!apiKey) throw new Error('GEMINI_API_KEY is empty');
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
   return {
     source: 'gemini',
     model,
-    async complete(prompt: string): Promise<string> {
+    async complete(prompt: string, opts?: { json?: boolean }): Promise<string> {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
@@ -33,7 +35,7 @@ export function createGeminiLlm({ apiKey, model = DEFAULT_GEMINI_MODEL, timeoutM
           method: 'POST',
           headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
           // maxOutputTokens leaves room for the model's own thinking plus a short answer.
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 2048 } }),
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 2048, ...(opts?.json ? { responseMimeType: 'application/json' } : {}) } }),
           signal: controller.signal,
         });
         const body = (await res.json().catch(() => ({}))) as GeminiResponse;
@@ -52,6 +54,25 @@ export function createGeminiLlm({ apiKey, model = DEFAULT_GEMINI_MODEL, timeoutM
   };
 }
 
-// Returns null when no key is set.
-export const geminiFromEnv = (env: Env = process.env): Llm | null =>
-  env.GEMINI_API_KEY ? createGeminiLlm({ apiKey: env.GEMINI_API_KEY, model: env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL }) : null;
+// Tries each model in order and returns the first answer. A busy or failing model just moves on to the next one.
+export function createGeminiChain(opts: Omit<GeminiOptions, 'model'> & { models: string[] }): Llm {
+  const llms = opts.models.map((model) => createGeminiLlm({ ...opts, model }));
+  return {
+    source: 'gemini',
+    model: opts.models[0],
+    async complete(prompt, o) {
+      let last: Error = new Error('No Gemini model configured');
+      for (const llm of llms) {
+        try { return await llm.complete(prompt, o); } catch (e) { last = e as Error; }
+      }
+      throw last;
+    },
+  };
+}
+
+// Returns null when no key is set. GEMINI_MODEL (if set) goes first, then the built-in backups.
+export function geminiFromEnv(env: Env = process.env): Llm | null {
+  if (!env.GEMINI_API_KEY) return null;
+  const models = [...new Set([env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL, ...BACKUP_GEMINI_MODELS])];
+  return createGeminiChain({ apiKey: env.GEMINI_API_KEY, models });
+}

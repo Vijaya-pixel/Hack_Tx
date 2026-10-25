@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createGeminiLlm, geminiFromEnv, DEFAULT_GEMINI_MODEL } from '../src/gemini.ts';
+import { createGeminiChain, createGeminiLlm, geminiFromEnv, DEFAULT_GEMINI_MODEL } from '../src/gemini.ts';
 import { buildFacts, explain, LABELS, type ExplainInput } from '../src/explain.ts';
 import { biweekly, compare, payoff } from '../src/loan.ts';
 import { DEMO_SEED, withPayment } from '../src/customers.ts';
@@ -32,6 +32,21 @@ describe('Gemini client', () => {
     assert.equal(geminiFromEnv({}), null);
     assert.equal(geminiFromEnv({ GEMINI_API_KEY: 'k' })!.model, DEFAULT_GEMINI_MODEL);
     assert.equal(geminiFromEnv({ GEMINI_API_KEY: 'k', GEMINI_MODEL: 'x' })!.model, 'x');
+  });
+});
+
+describe('Gemini model chain', () => {
+  test('a busy first model falls through to the backup; all failing throws the last error', async () => {
+    const seen: string[] = [];
+    const fetchFn = (async (url: string) => {
+      seen.push(/models\/([^:]+):/.exec(url)![1]);
+      return /first/.test(url) ? new Response(JSON.stringify({ error: { message: 'high demand' } }), { status: 503 }) : ok('backup answer')();
+    }) as unknown as typeof fetch;
+    const chain = createGeminiChain({ apiKey: 'k', models: ['first-model', 'second-model'], fetchFn });
+    assert.equal(await chain.complete('hi'), 'backup answer');
+    assert.deepEqual(seen, ['first-model', 'second-model']);
+    const down = createGeminiChain({ apiKey: 'k', models: ['a', 'b'], fetchFn: (async () => new Response('{}', { status: 500 })) as unknown as typeof fetch });
+    await assert.rejects(() => down.complete('hi'), /500/);
   });
 });
 

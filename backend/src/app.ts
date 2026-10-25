@@ -11,6 +11,7 @@ import { withPayment } from './customers.ts';
 import type { Customer, CustomerRepo, HardshipKind } from './customers.ts';
 import { explain, PRESETS } from './explain.ts';
 import type { Llm, Preset } from './explain.ts';
+import { answerFromFacts, MAX_QUESTION, parseIntent, refusal } from './chat.ts';
 
 export interface Deps {
   store: Store;
@@ -180,6 +181,32 @@ export function createApp(deps: Deps) {
     const { c, avg, extra, plan, bi } = await planFor(req.query.extraPerWeek, req.query, preset === 'double' ? 2 : 1);
     const out = await explain({ customer: c, preset, extraPerWeek: roundMoney(extra), avgPerWeek: roundMoney(avg), plan, biweekly: bi }, llms);
     res.json({ ...out, extraPerWeek: roundMoney(extra) });
+  });
+
+  // Free-text questions. Only about the loan, the car and the user's data in this app; anything else is refused.
+  const chatHits: number[] = [];
+  app.post('/api/chat', async (req, res) => {
+    const t = Date.now();
+    while (chatHits.length && t - chatHits[0] > 60_000) chatHits.shift();
+    if (chatHits.length >= 40) throw new HttpError(429, 'Too many questions at once. Please wait a moment.');
+    chatHits.push(t);
+    const body = (req.body ?? {}) as { message?: unknown; extraPerWeek?: unknown };
+    const message = typeof body.message === 'string' ? body.message.trim() : '';
+    if (!message) throw new HttpError(400, 'message is required');
+    if (message.length > MAX_QUESTION) throw new HttpError(400, `message must be at most ${MAX_QUESTION} characters`);
+    const llm = llms[0] ?? null;
+    const intent = await parseIntent(llm, message);
+    if (!intent.onTopic) return void res.json(refusal());
+    const fromClient = typeof body.extraPerWeek === 'number' && body.extraPerWeek >= 0 && body.extraPerWeek <= MAX_EXTRA ? body.extraPerWeek : undefined;
+    const { c, avg, extra, plan, bi } = await planFor(intent.extraPerWeek ?? fromClient, req.query);
+    const [summary, recent] = await Promise.all([deps.store.roundups(CUSTOMER_ID, now()), deps.store.feed(CUSTOMER_ID, 4)]);
+    const thisWeekKey = weekStart(now()).toISOString().slice(0, 10);
+    const reply = await answerFromFacts(llm, message, {
+      customer: c, extraPerWeek: roundMoney(extra), avgPerWeek: roundMoney(avg), plan, biweekly: bi,
+      roundups: { weeks: summary.completedWeeks, totalCents: summary.totalCents, avgPerWeekCents: summary.avgPerWeekCents, thisWeekCents: summary.weekly.find((w) => w.week === thisWeekKey)?.roundupCents ?? 0 },
+      recent,
+    }, intent);
+    res.json({ ...reply, extraPerWeek: roundMoney(extra) });
   });
 
   app.post('/api/hardship', async (req, res) => {

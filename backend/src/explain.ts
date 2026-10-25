@@ -16,7 +16,7 @@ export interface Facts {
 export interface Llm {
   source: 'gemini';
   model: string;
-  complete(prompt: string): Promise<string>;
+  complete(prompt: string, opts?: { json?: boolean }): Promise<string>;
 }
 
 export interface Explanation {

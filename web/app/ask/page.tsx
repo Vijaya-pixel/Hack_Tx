@@ -1,13 +1,13 @@
 'use client';
-import { Calculator, ShieldCheck, Sparkles, Type } from 'lucide-react';
+import { Calculator, MessageCircleQuestion, ShieldCheck, Sparkles } from 'lucide-react';
 import { Chat } from '../components/Chat';
 import { useShared } from '../components/Shell';
 
 const STEPS = [
-  { icon: Calculator, title: 'Our loan engine does the math', text: 'Your payment, months saved, interest saved and payoff date are calculated by tested code, never by an AI.' },
-  { icon: Sparkles, title: 'Gear (Gemini) explains it', text: 'Gear is an assistant powered by Google Gemini. It gets only those finished numbers and turns them into plain language.' },
-  { icon: ShieldCheck, title: 'Every number is checked', text: 'If an answer contains any number our engine did not provide, it is thrown away and the standard text is shown instead.' },
-  { icon: Type, title: 'Always a safe fallback', text: 'No key, no internet, or an error? You still get a correct standard answer, labeled as such.' },
+  { icon: MessageCircleQuestion, title: 'Gear checks the topic', text: 'Gemini reads your question and checks it is about your loan, your car or your RoundGear data. Anything else gets a polite "out of scope" reply.' },
+  { icon: Calculator, title: 'Our loan engine does the math', text: 'Your payment, months saved, interest saved and payoff date come from tested code, never from an AI. If you mention "$30 a week", the engine runs that exact plan.' },
+  { icon: Sparkles, title: 'Gemini explains it', text: 'Gear, powered by Google Gemini, gets only those finished numbers and turns them into a short, friendly answer.' },
+  { icon: ShieldCheck, title: 'Every number is checked', text: 'If an answer has a number our engine did not provide, it is thrown away and a correct standard answer is shown instead, labeled as such.' },
 ];
 
 export default function AskPage() {
@@ -23,7 +23,7 @@ export default function AskPage() {
         </span>
       </div>
       <p className="copy text-sm text-grey">
-        Gear is RoundGear’s loan guide, an AI assistant powered by Google Gemini. It explains your plan using {enabled ? 'your chosen extra per week' : '$0 extra (round-ups are off)'}.
+        Gear is RoundGear’s loan guide, an AI assistant powered by Google Gemini. Ask it about your loan, your car or your round-ups. It uses {enabled ? 'your chosen extra per week' : '$0 extra (round-ups are off)'} unless you name an amount.
       </p>
       <Chat extra={enabled ? extra : 0} name={customer.data?.name} loanQuery={loanQuery} />
 
