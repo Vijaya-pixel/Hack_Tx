@@ -1,5 +1,5 @@
 'use client';
-import { Coins, HelpCircle, LifeBuoy, type LucideIcon } from 'lucide-react';
+import { Coins, HelpCircle, LifeBuoy, Sparkles, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { api, type Explanation, type Preset } from '@/lib/api';
 import { withQs } from '@/lib/loanQuery';
@@ -11,12 +11,12 @@ const QUESTIONS: { id: Preset; text: string; icon: LucideIcon }[] = [
   { id: 'tight', text: 'What if money is tight?', icon: LifeBuoy },
 ];
 
-interface Msg { id: number; role: 'user' | 'assistant'; text: string; label?: string; why?: string; loading?: boolean }
+interface Msg { id: number; role: 'user' | 'assistant'; text: string; label?: string; ai?: boolean; why?: string; loading?: boolean }
 
 // A chat-style page. The questions are fixed presets, so every answer comes from /api/explain,
 // where the numbers are computed by the backend and checked before they are shown.
 export function Chat({ extra, name, loanQuery }: { extra: number; name?: string; loanQuery: string }) {
-  const greeting: Msg = { id: 0, role: 'assistant', text: `Hi${name ? ` ${name.split(' ')[0]}` : ''}! I can explain how your round-ups help with your loan. Pick a question below.` };
+  const greeting: Msg = { id: 0, role: 'assistant', text: `Hi${name ? ` ${name.split(' ')[0]}` : ''}! I’m Gear, your loan guide, powered by Google Gemini. I can explain how your round-ups help with your loan. Pick a question below.` };
   const [msgs, setMsgs] = useState<Msg[]>([greeting]);
   const [busy, setBusy] = useState(false);
   const next = useRef(1);
@@ -30,7 +30,7 @@ export function Chat({ extra, name, loanQuery }: { extra: number; name?: string;
     setMsgs((m) => [...m, { id: userId, role: 'user', text: q.text }, { id: botId, role: 'assistant', text: '', loading: true }]);
     try {
       const r = await api<Explanation>(withQs(`/api/explain?preset=${q.id}&extraPerWeek=${extra}`, loanQuery));
-      setMsgs((m) => m.map((x) => (x.id === botId ? { id: botId, role: 'assistant', text: r.text, label: r.source === 'gemini' ? 'Google Gemini' : 'Standard', why: r.rejected } : x)));
+      setMsgs((m) => m.map((x) => (x.id === botId ? { id: botId, role: 'assistant', text: r.text, label: r.source === 'gemini' ? 'Powered by Google Gemini' : 'Standard answer', ai: r.source === 'gemini', why: r.rejected } : x)));
     } catch (e) {
       setMsgs((m) => m.map((x) => (x.id === botId ? { id: botId, role: 'assistant', text: `Sorry, I couldn’t get that answer. ${(e as Error).message}` } : x)));
     } finally { setBusy(false); }
@@ -52,8 +52,13 @@ export function Chat({ extra, name, loanQuery }: { extra: number; name?: string;
                 </span>
               ) : (
                 <>
+                  {m.role === 'assistant' && <p className="label mb-1">Gear</p>}
                   <p className="copy text-[14px] leading-relaxed">{m.text}</p>
-                  {m.label && <p className="mt-2 inline-block rounded-full bg-soft px-3 py-0.5 text-xs font-medium text-grey" title={m.why}>{m.label}</p>}
+                  {m.label && (
+                    <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-soft px-3 py-0.5 text-xs font-medium text-grey" title={m.why}>
+                      {m.ai && <Sparkles size={12} strokeWidth={1.75} className="text-chart" />}{m.label}
+                    </p>
+                  )}
                 </>
               )}
             </div>

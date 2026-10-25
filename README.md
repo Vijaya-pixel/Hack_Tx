@@ -26,6 +26,17 @@ Tests: `cd backend && npm test`. Web build: `cd web && npm run build`.
 
 `GET /api/health` reports which mode is active. The footer of the page shows it too.
 
+## Gear, the Gemini-powered agent
+
+The **Ask** page is **Gear**, RoundGear's loan guide, an AI assistant **powered by Google Gemini**. How it works:
+
+1. The backend's loan engine (`backend/src/loan.ts`, unit-tested) calculates every number: payment, months saved, interest saved, payoff date.
+2. Those finished numbers become a short list of facts. Gear (Gemini, via `backend/src/gemini.ts`) is given only those facts and turns them into 2 to 3 plain-language sentences for one of three preset questions.
+3. Every number in Gemini's reply is checked against the facts. An answer with any other number is discarded.
+4. If there is no key, a network error or a rejected answer, the app shows a correct built-in "standard answer", labeled as such.
+
+The page shows a "Powered by Google Gemini" badge only when a Gemini key is configured, and labels each answer with its source.
+
 ## Rules the code follows
 
 - All money math is in `backend/src/loan.ts` (tested). The AI only rewords numbers; the frontend only shows what the API returns.

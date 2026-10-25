@@ -16,6 +16,7 @@ export function useDebounced<T>(value: T, ms: number): T {
 // State shared by every page: the customer, the live feed, and the chosen extra per week with its plan.
 interface Shared {
   customer: Loaded<Customer>;
+  health: Loaded<Health>;
   feed: Loaded<Feed>;
   running: boolean;
   demoBusy: boolean;
@@ -62,7 +63,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const plan = useApi<Plan>(base.data ? withQs(`/api/plan?extraPerWeek=${enabled ? debounced : 0}`, loanQuery) : null);
 
   return (
-    <Ctx.Provider value={{ customer, loan, setLoan, loanQuery, feed, running, demoBusy, toggleDemo, base, plan, extra, setExtra: setChosen, enabled, setEnabled }}>
+    <Ctx.Provider value={{ customer, health, loan, setLoan, loanQuery, feed, running, demoBusy, toggleDemo, base, plan, extra, setExtra: setChosen, enabled, setEnabled }}>
       <Header name={customer.data?.name} feed={feed.data} path={path} />
       <div className="mx-auto max-w-[1360px] px-4 py-8 md:px-8">{children}</div>
       <footer className="mx-auto max-w-[1360px] px-4 pb-8 text-xs text-grey md:px-8">

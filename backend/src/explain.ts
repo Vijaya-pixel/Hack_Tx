@@ -79,7 +79,7 @@ export function templateExplanation(f: Facts): string {
 
 export function buildPrompt(f: Facts): string {
   return [
-    'You are a friendly assistant for Toyota Financial Services customers. Answer the question in 2 to 3 short sentences of plain language.',
+    'You are Gear, the loan guide inside RoundGear, a concept app for Toyota Financial Services customers, powered by Google Gemini. Answer the question in 2 to 3 short sentences of plain language.',
     'Use ONLY the facts below. Copy every number exactly as written. Do not add, compute, round or estimate any other number. Do not promise approval of any request.',
     `Question: ${f.question}`,
     'Facts:',
