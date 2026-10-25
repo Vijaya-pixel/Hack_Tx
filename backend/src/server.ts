@@ -23,7 +23,18 @@ if (client) {
 // Set AI_PROVIDER=gemini in .env to put Gemini first instead.
 const cortex = client ? cortexLlm(client, cortexModel()) : null;
 const gemini = geminiFromEnv();
-const llms = (process.env.AI_PROVIDER === 'gemini' ? [gemini, cortex] : [cortex, gemini]).filter((x): x is NonNullable<typeof x> => x !== null);
+// Cortex is tested once at startup. If the account can't use it (for example a trial account), leave it out so the
+// health check and the Ask page tell the truth and no request is wasted on it.
+let cortexOk = cortex;
+if (cortex) {
+  try {
+    await Promise.race([cortex.complete('Reply with the single word: ok'), new Promise((_, rej) => setTimeout(() => rej(new Error('timed out')), 20_000))]);
+  } catch (e) {
+    console.log(`Snowflake Cortex is not usable, so Ask will not use it: ${(e as Error).message.slice(0, 160)}`);
+    cortexOk = null;
+  }
+}
+const llms = (process.env.AI_PROVIDER === 'gemini' ? [gemini, cortexOk] : [cortexOk, gemini]).filter((x): x is NonNullable<typeof x> => x !== null);
 const app = createApp({ store, storeReason, simulator: createSimulator(store), repo, snowflake: client, snowflakeReason, cortexModel: cortexModel(), llm: llms });
 const port = Number(process.env.PORT) || 4000;
 app.listen(port, () => {
