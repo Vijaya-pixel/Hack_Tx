@@ -23,6 +23,7 @@ export function sslSettings(connectionString: string, env: Env): { connectionStr
 // Connects to TigerData (or any Postgres) using DATABASE_URL. Returns null if it isn't set.
 export async function createDbFromEnv(env: Env = process.env): Promise<Db | null> {
   if (!env.DATABASE_URL) return null;
+  if (/PASTE_PASSWORD_HERE/.test(env.DATABASE_URL)) throw new Error('DATABASE_URL still contains PASTE_PASSWORD_HERE. Replace it with your TigerData password.');
   const pg = (await import('pg')).default;
   const { connectionString, ssl } = sslSettings(env.DATABASE_URL, env);
   const pool = new pg.Pool({
