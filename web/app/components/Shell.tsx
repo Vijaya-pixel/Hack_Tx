@@ -37,7 +37,7 @@ export const useShared = (): Shared => {
   return v;
 };
 
-const MODE_NAMES: Record<string, string> = { tigerdata: 'TigerData', postgres: 'Postgres', memory: 'demo memory', cortex: 'Snowflake Cortex', gemini: 'Google Gemini', template: 'built-in template', snowflake: 'Snowflake', local: 'local seed' };
+const MODE_NAMES: Record<string, string> = { tigerdata: 'TigerData', postgres: 'Postgres', memory: 'demo memory', gemini: 'Google Gemini', template: 'standard text', local: 'demo seed' };
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
@@ -69,7 +69,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <p>Concept for Toyota Financial Services. Not an official Toyota app. All data is synthetic.</p>
         {health.data && (
           <p className="mt-1">
-            Transactions: {MODE_NAMES[health.data.database.mode] ?? health.data.database.mode} · Customer: {MODE_NAMES[health.data.snowflake.customerSource] ?? health.data.snowflake.customerSource} · Explanations: {MODE_NAMES[health.data.ai.mode] ?? health.data.ai.mode}
+            Transactions: {MODE_NAMES[health.data.database.mode] ?? health.data.database.mode} · Customer: {MODE_NAMES[health.data.customer.source] ?? health.data.customer.source} · Explanations: {MODE_NAMES[health.data.ai.mode] ?? health.data.ai.mode}
           </p>
         )}
         <Link href="/" className="sr-only">Home</Link>

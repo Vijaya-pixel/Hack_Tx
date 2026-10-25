@@ -2,7 +2,6 @@
 // Every number in a Cortex reply must already appear in the facts we sent, otherwise we use the template.
 import type { Comparison } from './loan.ts';
 import type { Customer } from './customers.ts';
-import type { SnowflakeClient } from './snowflake.ts';
 
 export type Preset = 'worth' | 'double' | 'tight';
 export const PRESETS: Preset[] = ['worth', 'double', 'tight'];
@@ -13,22 +12,22 @@ export interface Facts {
   question: string;
 }
 
-// Anything that can turn a prompt into text. Gemini and Snowflake Cortex both fit this shape.
+// Anything that can turn a prompt into text. Gemini is the one we use; more could be added in a list.
 export interface Llm {
-  source: 'gemini' | 'cortex';
+  source: 'gemini';
   model: string;
   complete(prompt: string): Promise<string>;
 }
 
 export interface Explanation {
   text: string;
-  source: 'gemini' | 'cortex' | 'template';
+  source: 'gemini' | 'template';
   label: string;
   preset: Preset;
   rejected?: string; // why a Cortex reply was not used
 }
 
-export const LABELS = { gemini: 'AI explanation · Google Gemini', cortex: 'AI explanation · Snowflake Cortex', template: 'Standard explanation' } as const;
+export const LABELS = { gemini: 'AI explanation · Google Gemini', template: 'Standard explanation' } as const;
 
 export const usd = (x: number): string => {
   const whole = Math.abs(x) >= 100 || Number.isInteger(x);
@@ -101,26 +100,6 @@ export function unknownNumbers(reply: string, facts: Facts): number[] {
 
 const TIMEOUT_MS = 8000;
 
-// Snowflake Cortex as an Llm. New accounts can only use the AI Functions (AI_COMPLETE); the older
-// SNOWFLAKE.CORTEX.COMPLETE is tried only if AI_COMPLETE is not recognised. Both use bound parameters.
-export function cortexLlm(client: SnowflakeClient, model: string): Llm {
-  const run = async (fn: string, prompt: string) => {
-    const rows = await client.query<{ REPLY: string }>(`SELECT ${fn}(?, ?) AS REPLY`, [model, prompt]);
-    return String(rows[0]?.REPLY ?? '');
-  };
-  return {
-    source: 'cortex',
-    model,
-    async complete(prompt) {
-      try { return await run('AI_COMPLETE', prompt); }
-      catch (e) {
-        if (!/unknown function|invalid identifier|not recognized|does not exist/i.test((e as Error).message)) throw e;
-        return run('SNOWFLAKE.CORTEX.COMPLETE', prompt);
-      }
-    },
-  };
-}
-
 // Tries each AI in order; the first reply that passes the number check wins. If none does, the standard text is used
 // and `rejected` says why each one was not used.
 export async function explain(input: ExplainInput, llms: Llm | Llm[] | null, timeoutMs = TIMEOUT_MS): Promise<Explanation> {
@@ -130,7 +109,7 @@ export async function explain(input: ExplainInput, llms: Llm | Llm[] | null, tim
   if (list.length === 0) return { ...template, rejected: 'No AI is connected' };
   const reasons: string[] = [];
   for (const llm of list) {
-    const name = llm.source === 'gemini' ? 'Gemini' : 'Cortex';
+    const name = 'Gemini';
     try {
       let timer: ReturnType<typeof setTimeout> | undefined;
       const timeout = new Promise<never>((_, rej) => { timer = setTimeout(() => rej(new Error(`${name} timed out`)), timeoutMs); });

@@ -9,19 +9,15 @@ import { CUSTOMER_ID, weekStart } from './seed.ts';
 import { HARDSHIP_KINDS } from './customers.ts';
 import { withPayment } from './customers.ts';
 import type { Customer, CustomerRepo, HardshipKind } from './customers.ts';
-import { cortexLlm, explain, PRESETS } from './explain.ts';
+import { explain, PRESETS } from './explain.ts';
 import type { Llm, Preset } from './explain.ts';
-import type { SnowflakeClient } from './snowflake.ts';
 
 export interface Deps {
   store: Store;
   storeReason?: string;
   simulator: Simulator;
   repo: CustomerRepo;
-  snowflake: SnowflakeClient | null;
-  snowflakeReason?: string;
-  cortexModel: string;
-  llm?: Llm | Llm[] | null; // AIs to try, in order. When absent, Snowflake Cortex is used if connected
+  llm?: Llm | Llm[] | null; // AIs to try, in order. When absent, the standard text is used
   now?: () => Date;
 }
 
@@ -74,7 +70,7 @@ export function createApp(deps: Deps) {
   // Answers change when the code or the numbers change, so never let a browser or proxy reuse an old one.
   app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   const now = deps.now ?? (() => new Date());
-  const llms: Llm[] = deps.llm === undefined ? (deps.snowflake ? [cortexLlm(deps.snowflake, deps.cortexModel)] : []) : deps.llm === null ? [] : Array.isArray(deps.llm) ? deps.llm : [deps.llm];
+  const llms: Llm[] = !deps.llm ? [] : Array.isArray(deps.llm) ? deps.llm : [deps.llm];
 
   let cached: { at: number; value: Customer } | null = null;
   const customer = async (): Promise<Customer> => {
@@ -113,7 +109,7 @@ export function createApp(deps: Deps) {
   app.get('/api/health', (_req, res) => {
     res.json({
       database: { mode: deps.store.mode, ...(deps.storeReason ? { fallbackReason: deps.storeReason } : {}) },
-      snowflake: { connected: deps.snowflake !== null, customerSource: deps.repo.source, ...(deps.snowflakeReason ? { reason: deps.snowflakeReason } : {}) },
+      customer: { source: deps.repo.source },
       ai: llms.length ? { mode: llms[0].source, model: llms[0].model, order: llms.map((l) => l.source) } : { mode: 'template', order: [] },
       simulator: { running: deps.simulator.running() },
     });

@@ -13,13 +13,13 @@ export interface Plan {
   kpis: { monthsSaved: number; interestSaved: number; newPayoffDate: string };
   biweekly: { monthsSaved: number; interestSaved: number; newPayoffDate: string };
 }
-export interface Explanation { text: string; source: 'gemini' | 'cortex' | 'template'; label: string; preset: Preset; rejected?: string; extraPerWeek: number }
+export interface Explanation { text: string; source: 'gemini' | 'template'; label: string; preset: Preset; rejected?: string; extraPerWeek: number }
 export type Preset = 'worth' | 'double' | 'tight';
 export type HardshipKind = 'pause' | 'biweekly' | 'credit';
 export interface HardshipResult { id: string; kind: HardshipKind; status: string; message: string }
 export interface Health {
   database: { mode: string; fallbackReason?: string };
-  snowflake: { connected: boolean; customerSource: string };
+  customer: { source: string };
   ai: { mode: string; model?: string };
 }
 

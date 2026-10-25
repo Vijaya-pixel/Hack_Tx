@@ -5,14 +5,13 @@ import { createApp } from '../src/app.ts';
 import { createMemoryStore } from '../src/store.ts';
 import { createSimulator } from '../src/simulator.ts';
 import { createLocalRepo } from '../src/customers.ts';
-import type { SnowflakeClient } from '../src/snowflake.ts';
 
 const NOW = new Date('2026-10-24T15:00:00Z');
 
-async function start(snowflake: SnowflakeClient | null = null) {
+async function start() {
   const store = createMemoryStore(NOW);
   const simulator = createSimulator(store, 10);
-  const app = createApp({ store, simulator, repo: createLocalRepo(), snowflake, cortexModel: 'test-model', now: () => NOW });
+  const app = createApp({ store, simulator, repo: createLocalRepo(), now: () => NOW });
   const server: Server = await new Promise((res) => { const s = app.listen(0, () => res(s)); });
   const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
   const get = async (path: string) => { const r = await fetch(base + path); return { status: r.status, body: (await r.json()) as any }; };
@@ -31,8 +30,7 @@ describe('API in fallback mode', () => {
   test('health says which modes are active', async () => {
     const { body } = await api.get('/api/health');
     assert.equal(body.database.mode, 'memory');
-    assert.equal(body.snowflake.connected, false);
-    assert.equal(body.snowflake.customerSource, 'local');
+    assert.equal(body.customer.source, 'local');
     assert.equal(body.ai.mode, 'template');
   });
 
@@ -118,7 +116,7 @@ describe('API in fallback mode', () => {
     assert.equal((await api.get('/api/plan?extraPerWeek=x')).status, 400);
   });
 
-  test('explain uses the template without Snowflake and checks its inputs', async () => {
+  test('explain uses the template when no AI is set and checks its inputs', async () => {
     const { body } = await api.get('/api/explain?extraPerWeek=20&preset=worth');
     assert.equal(body.source, 'template');
     assert.equal(body.label, 'Standard explanation');
@@ -148,7 +146,7 @@ describe('API with Gemini for Ask', () => {
     const llm = { source: 'gemini' as const, model: 'g-test', complete: async () => 'placeholder' };
     const store = createMemoryStore(NOW);
     const sim = createSimulator(store, 10);
-    const app = createApp({ store, simulator: sim, repo: createLocalRepo(), snowflake: null, cortexModel: 'm', llm, now: () => NOW });
+    const app = createApp({ store, simulator: sim, repo: createLocalRepo(), llm, now: () => NOW });
     const server: Server = await new Promise((res) => { const s = app.listen(0, () => res(s)); });
     const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
     try {
@@ -161,30 +159,11 @@ describe('API with Gemini for Ask', () => {
   });
 });
 
-describe('API with a fake Snowflake', () => {
-  test('a faithful Cortex reply is served with the Cortex label; a bad one falls back', async () => {
-    let reply = '';
-    const client: SnowflakeClient = { query: async () => [{ REPLY: reply }] as never, close: async () => {} };
-    const api = await start(client);
-    try {
-      assert.equal((await api.get('/api/health')).body.ai.mode, 'cortex');
-      const plain = (await api.get('/api/explain?extraPerWeek=20')).body;
-      reply = plain.text; // the template text uses only known numbers, so it passes the guard
-      const ok = (await api.get('/api/explain?extraPerWeek=20')).body;
-      assert.equal(ok.source, 'cortex');
-      reply = 'You will save $123,456.';
-      const bad = (await api.get('/api/explain?extraPerWeek=20')).body;
-      assert.equal(bad.source, 'template');
-      assert.match(bad.rejected, /123456/);
-    } finally { api.close(); }
-  });
-});
-
 describe('highlight card', () => {
   test('on a Monday morning with nothing yet it shows last week instead', async () => {
     const monday = new Date('2026-10-26T00:00:30Z');
     const store = createMemoryStore(monday);
-    const app = createApp({ store, simulator: createSimulator(store, 10), repo: createLocalRepo(), snowflake: null, cortexModel: 'm', now: () => monday });
+    const app = createApp({ store, simulator: createSimulator(store, 10), repo: createLocalRepo(), now: () => monday });
     const server: Server = await new Promise((res) => { const s = app.listen(0, () => res(s)); });
     try {
       const body: any = await (await fetch(`http://127.0.0.1:${(server.address() as { port: number }).port}/api/roundups`)).json();
