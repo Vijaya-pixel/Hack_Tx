@@ -38,7 +38,7 @@ describe('API in fallback mode', () => {
 
   test('customer has a computed payment', async () => {
     const { body } = await api.get('/api/customer');
-    assert.equal(body.name, 'Jordan Parker');
+    assert.equal(body.name, 'Vijay');
     assert.ok(Math.abs(body.monthlyPayment - 656) < 1);
     assert.equal(body.percentPaid, 18.8);
   });

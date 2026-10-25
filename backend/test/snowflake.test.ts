@@ -36,10 +36,10 @@ describe('config', () => {
 });
 
 describe('customer repos', () => {
-  test('local repo gives Jordan with a computed payment and stores requests as pending', async () => {
+  test('local repo gives Vijay with a computed payment and stores requests as pending', async () => {
     const repo = createLocalRepo();
     const c = await repo.getCustomer('demo');
-    assert.equal(c.name, 'Jordan Parker');
+    assert.equal(c.name, 'Vijay');
     assert.ok(Math.abs(c.monthlyPayment - 656) < 1);
     const r = await repo.saveHardship('demo', 'pause');
     assert.equal(r.status, 'PENDING');
@@ -47,7 +47,7 @@ describe('customer repos', () => {
   });
   test('snowflake repo reads with bound parameters and inserts hardship requests', async () => {
     const { client, calls } = fakeClient((sql) => /FROM CUSTOMERS/.test(sql)
-      ? [{ CUSTOMER_ID: 'demo', NAME: 'Jordan Parker', VEHICLE: '2024 Toyota RAV4 Hybrid', ORIGINAL_AMOUNT: 34500, BALANCE: 28000, APR: 5.9, MONTHS_REMAINING: 48 }] : []);
+      ? [{ CUSTOMER_ID: 'demo', NAME: 'Vijay', VEHICLE: '2024 Toyota RAV4 Hybrid', ORIGINAL_AMOUNT: 34500, BALANCE: 28000, APR: 5.9, MONTHS_REMAINING: 48 }] : []);
     const repo = createSnowflakeRepo(client);
     const c = await repo.getCustomer('demo');
     assert.equal(c.balance, 28000);
@@ -63,7 +63,7 @@ describe('customer repos', () => {
     const { client } = fakeClient(() => []);
     await assert.rejects(() => createSnowflakeRepo(client).getCustomer('nobody'), /No customer/);
   });
-  test('setup creates the three tables and seeds Jordan', async () => {
+  test('setup creates the three tables and seeds Vijay', async () => {
     const { client, calls } = fakeClient(() => []);
     await seedSnowflake(client);
     const sql = calls.map((c) => c.sql).join('\n');

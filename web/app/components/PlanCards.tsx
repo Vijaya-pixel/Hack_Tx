@@ -33,7 +33,7 @@ export function PlanCard({ plan, base, extra, enabled }: { plan: Loaded<Plan>; b
           </Link>
         </div>
       </div>
-      <div className="relative mx-auto my-6 w-3/5 min-w-[220px]"><Car /></div>
+      <div className="relative mx-auto my-6 w-full max-w-xl"><Car /></div>
       {p ? (
         <div className="relative grid grid-cols-3 divide-x divide-line">
           <Stat label="Time saved"><AnimatedNumber value={p.kpis.monthsSaved} format={(n) => `${Math.round(n)} mo`} /></Stat>

@@ -20,10 +20,10 @@ interface Shared {
   running: boolean;
   demoBusy: boolean;
   toggleDemo: () => void;
-  loan: LoanInput | null; // typed-in loan values, or null for Jordan's
+  loan: LoanInput | null; // typed-in loan values, or null for Vijay's
   setLoan: (l: LoanInput | null) => void;
   loanQuery: string;
-  base: Loaded<Plan>; // Jordan's real average and the bi-weekly effect
+  base: Loaded<Plan>; // Vijay's real average and the bi-weekly effect
   plan: Loaded<Plan>; // the plan for the chosen extra
   extra: number;
   setExtra: (v: number) => void;

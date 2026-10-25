@@ -21,7 +21,7 @@ describe('roundUp', () => {
 });
 
 describe('monthlyPayment', () => {
-  test("Jordan's payment is about $656", () => {
+  test("Vijay's payment is about $656", () => {
     close(monthlyPayment(28000, 5.9, 48), 656, 1);
   });
   test('0% APR is balance / months', () => {

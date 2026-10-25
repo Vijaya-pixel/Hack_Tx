@@ -20,17 +20,17 @@ export function Header({ name, feed, path }: { name?: string; feed: Feed | null;
   const active = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
   const link = (href: string, label: string, size: string) => (
     <Link key={href} href={href} aria-current={active(href) ? 'page' : undefined}
-      className={`${size} whitespace-nowrap transition-colors ${active(href) ? 'font-medium text-ink underline decoration-toyota decoration-2 underline-offset-8' : 'text-grey hover:text-ink'}`}>{label}</Link>
+      className={`${size} whitespace-nowrap transition-colors ${active(href) ? 'font-semibold text-ink underline decoration-toyota decoration-[3px] underline-offset-[10px]' : 'text-grey hover:text-ink'}`}>{label}</Link>
   );
   return (
     <header className="border-b border-line bg-page">
-      <div className="mx-auto grid max-w-[1360px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-4 md:px-8">
+      <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-4 md:px-6">
         <div className="col-start-1 text-left">
           <Link href="/" className="block"><p className="wordmark text-sm uppercase tracking-[0.2em] md:text-base">Round·Up</p>
           <p className="label mt-1 !text-toyota">Toyota Financial Services · Concept</p></Link>
         </div>
-        <nav aria-label="Sections" className="hidden items-center justify-center gap-7 md:col-start-2 md:flex">
-          {NAV.map((n) => link(n.href, n.label, 'text-[15px]'))}
+        <nav aria-label="Sections" className="hidden items-center justify-center gap-8 md:col-start-2 md:flex xl:gap-12">
+          {NAV.map((n) => link(n.href, n.label, 'text-lg xl:text-xl'))}
         </nav>
         <div className="relative col-start-3 flex items-center justify-end gap-3">
           <ThemeToggle />

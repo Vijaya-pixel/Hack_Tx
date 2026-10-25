@@ -31,7 +31,7 @@ Tests: `cd backend && npm test`. Web build: `cd web && npm run build`.
 - All money math is in `backend/src/loan.ts` (tested). The AI only rewords numbers; the frontend only shows what the API returns.
 - A Cortex reply with any number not in the facts is thrown away and the template is shown, labeled "Standard explanation".
 - Hardship actions are requests: "Request sent. A TFS specialist will review it."
-- Purchases, the customer and the loan are synthetic (Jordan Parker, 2024 RAV4 Hybrid, $28,000, 5.9% APR, 48 months).
+- Purchases, the customer and the loan are synthetic (Vijay, 2024 RAV4 Hybrid, $28,000, 5.9% APR, 48 months).
 - Modeling note: weekly extra money is spread across each month (52/12 weeks) and applied to principal; interest is charged monthly.
 
 ## Environment variables
@@ -42,9 +42,9 @@ If `snowflake:check` says your region lacks the Cortex model, set `SNOWFLAKE_COR
 
 ## 2-minute demo script
 
-1. **Header (10s):** Jordan and the RAV4 loan card. Point at the "Demo data" label.
+1. **Header (10s):** Vijay and the RAV4 loan card. Point at the "Demo data" label.
 2. **Your round-ups (20s):** 12 weeks of weekly bars from TigerData and the total rounded up.
 3. **Live feed (25s):** press Start demo; a purchase lands every 3 seconds, each with its round-up. Mention the continuous aggregate behind the chart.
-4. **What if (35s):** the slider starts at Jordan's real average. Drag it up and watch the curves, months saved, interest saved and payoff date change. Round-ups go to principal.
+4. **What if (35s):** the slider starts at Vijay's real average. Drag it up and watch the curves, months saved, interest saved and payoff date change. Round-ups go to principal.
 5. **Ask (20s):** click the three questions. Note the source label (Snowflake Cortex, or Standard if it fell back) and that every number is checked.
 6. **Money is tight? (10s):** show the bi-weekly effect, send a request, and read the confirmation. It is saved to Snowflake as a pending request.
