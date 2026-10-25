@@ -89,8 +89,10 @@ export async function createDbStore(db: Db, now: Date = new Date()): Promise<Sto
     id bigserial, ts timestamptz NOT NULL, customer_id text NOT NULL, merchant text NOT NULL,
     category text NOT NULL, amount_cents integer NOT NULL, roundup_cents integer NOT NULL)`);
   const hyper = await enableHypertable(db, { table: 'transactions', timeColumn: 'ts' });
-  const select = `SELECT ${bucketFloor(hyper, 'day', 'ts')} AS day, customer_id, sum(roundup_cents)::int AS roundup_cents, count(*)::int AS n
-    FROM transactions GROUP BY 1, customer_id`;
+  // Group by the full bucket expression (not a position number): continuous aggregates need to see time_bucket in GROUP BY.
+  const bucket = bucketFloor(hyper, 'day', 'ts');
+  const select = `SELECT ${bucket} AS day, customer_id, sum(roundup_cents)::int AS roundup_cents, count(*)::int AS n
+    FROM transactions GROUP BY ${bucket}, customer_id`;
   let mode: StoreMode = 'postgres';
   if (hyper && (await createContinuousAggregate(db, { view: 'roundups_daily', query: select }))) mode = 'tigerdata';
   else await db.query(`CREATE OR REPLACE VIEW roundups_daily AS ${select}`);
