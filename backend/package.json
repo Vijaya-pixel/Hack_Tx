@@ -11,7 +11,7 @@
     "snowflake:check": "tsx --env-file-if-exists=.env scripts/snowflake-check.ts"
   },
   "dependencies": {
-    "express": "^4.21.0",
+    "express": "^5.3.0",
     "pg": "^8.23.1",
     "snowflake-sdk": "^3.4.0"
   },
