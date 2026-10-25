@@ -20,7 +20,7 @@ export interface HardshipResult { id: string; kind: HardshipKind; status: 'PENDI
 export const HARDSHIP_MESSAGE = 'Request sent. A TFS specialist will review it.';
 
 export const DEMO_SEED = {
-  id: 'demo', name: 'Vijay', vehicle: '2024 Toyota RAV4 Hybrid', originalAmount: 34500, balance: 28000, apr: 5.9, monthsRemaining: 48,
+  id: 'demo', name: 'Vijay', vehicle: '2024 Toyota GR86', originalAmount: 34500, balance: 28000, apr: 5.9, monthsRemaining: 48,
 };
 
 export function withPayment(c: Omit<Customer, 'monthlyPayment'>): Customer {

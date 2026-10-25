@@ -21,7 +21,7 @@ const LINKS = [
 
 function HeroStat({ label, value }: { label: string; value?: string }) {
   return (
-    <div className="pix px-4 py-3">
+    <div className="pix px-5 py-3.5">
       <p className="label">{label}</p>
       <p className="mt-1 text-[17px] font-medium text-ink">{value ?? <span className="text-grey">…</span>}</p>
     </div>
@@ -51,7 +51,7 @@ export default function Home() {
                   <HeroStat label="Loan balance" value={c ? usd(c.balance) : undefined} />
                   <HeroStat label="APR · months left" value={c ? `${c.apr}% · ${c.monthsRemaining} mo` : undefined} />
                   <HeroStat label="Monthly payment" value={c ? usd2(c.monthlyPayment) : undefined} />
-                  <Link href="/plans" className="skeu flex items-center justify-center px-8 py-4 text-center text-base font-semibold">See my plan</Link>
+                  <Link href="/plans" className="skeu flex items-center justify-center px-9 py-4 text-center text-base font-semibold">See my plan</Link>
                 </div>
               )}
             </div>
@@ -80,8 +80,8 @@ export default function Home() {
               <p className="text-sm text-grey">{usd(c.balance)} · {c.apr}% APR · {c.monthsRemaining} months left</p>
               <div className="my-4 w-full"><Car /></div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-3xl bg-panel p-4"><p className="label">Monthly payment</p><p className="big mt-3 text-3xl">{usd2(c.monthlyPayment)}</p></div>
-                <div className="rounded-3xl bg-panel p-4"><p className="label">Loan paid off</p><div className="mt-2">{c.percentPaid === null ? <p className="copy text-xs text-grey">Add the original amount to see this.</p> : <Gauge pct={c.percentPaid} />}</div></div>
+                <div className="pop rounded-3xl bg-panel p-4"><p className="label">Monthly payment</p><p className="big mt-3 text-3xl">{usd2(c.monthlyPayment)}</p></div>
+                <div className="pop rounded-3xl bg-panel p-4"><p className="label">Loan paid off</p><div className="mt-2">{c.percentPaid === null ? <p className="copy text-xs text-grey">Add the original amount to see this.</p> : <Gauge pct={c.percentPaid} />}</div></div>
               </div>
               <LoanForm customer={c} active={loan !== null} onApply={setLoan} onReset={() => setLoan(null)} />
             </>

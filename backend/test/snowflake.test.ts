@@ -47,7 +47,7 @@ describe('customer repos', () => {
   });
   test('snowflake repo reads with bound parameters and inserts hardship requests', async () => {
     const { client, calls } = fakeClient((sql) => /FROM CUSTOMERS/.test(sql)
-      ? [{ CUSTOMER_ID: 'demo', NAME: 'Vijay', VEHICLE: '2024 Toyota RAV4 Hybrid', ORIGINAL_AMOUNT: 34500, BALANCE: 28000, APR: 5.9, MONTHS_REMAINING: 48 }] : []);
+      ? [{ CUSTOMER_ID: 'demo', NAME: 'Vijay', VEHICLE: '2024 Toyota GR86', ORIGINAL_AMOUNT: 34500, BALANCE: 28000, APR: 5.9, MONTHS_REMAINING: 48 }] : []);
     const repo = createSnowflakeRepo(client);
     const c = await repo.getCustomer('demo');
     assert.equal(c.balance, 28000);

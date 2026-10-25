@@ -42,7 +42,7 @@ export function Sidebar({ plan, extra, onExtra, enabled, onEnabled }: {
 
       <section>
         <p className="label mb-3">Round-ups</p>
-        <div className="flex items-center justify-between rounded-2xl border border-line bg-panel p-4">
+        <div className="pop flex items-center justify-between rounded-2xl border border-line bg-panel p-4">
           <span className="text-[15px]">Apply to my loan <span className="block text-xs text-grey">{enabled ? 'ON: going to principal' : 'OFF: plan shows $0 extra'}</span></span>
           <Switch on={enabled} onChange={onEnabled} label="Apply round-ups to the plan" />
         </div>
@@ -62,7 +62,7 @@ export function Sidebar({ plan, extra, onExtra, enabled, onEnabled }: {
         </ul>
       </section>
 
-      <Link href="/help" className="flex items-center gap-4 rounded-3xl bg-toyota p-5 text-white">
+      <Link href="/help" className="pop flex items-center gap-4 rounded-3xl bg-toyota p-5 text-white">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-panel text-toyota"><ShieldCheck size={24} strokeWidth={1.5} /></span>
         <div className="min-w-0 flex-1">
           <h2 className="text-lg leading-tight">Money is tight?</h2>

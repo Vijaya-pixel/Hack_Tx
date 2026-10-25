@@ -80,12 +80,12 @@ export function PayoffCard({ id, customer, plan }: { id: string; customer: Loade
             <p className="copy text-xs text-grey">Round-ups go to principal, which is why they save interest.</p>
           </div>
           <div className="space-y-4">
-            <div className="rounded-3xl bg-panel p-4">
+            <div className="pop rounded-3xl bg-panel p-4">
               <p className="label">Time saved</p>
               <p className="big mt-3 text-4xl"><AnimatedNumber value={p.kpis.monthsSaved} format={(n) => `${Math.round(n)}`} /> <span className="text-xl">{p.kpis.monthsSaved === 1 ? 'month' : 'months'}</span></p>
               <p className="mt-1 text-xs text-grey">new payoff {monthYear(p.kpis.newPayoffDate)}</p>
             </div>
-            <div className="rounded-3xl bg-panel p-4">
+            <div className="pop rounded-3xl bg-panel p-4">
               <p className="label">Loan paid off</p>
               <div className="mt-3">{!c ? <Skeleton className="h-24" /> : c.percentPaid === null ? <p className="copy text-xs text-grey">Add the original loan amount to see this.</p> : <Gauge pct={c.percentPaid} />}</div>
             </div>
