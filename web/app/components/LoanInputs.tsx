@@ -19,6 +19,11 @@ function Menu({ id, open, setOpen, label, value, children, wide = false }: {
 }) {
   const isOpen = open === id;
   const ref = useRef<HTMLDivElement>(null);
+  const pop = useRef<HTMLDivElement>(null);
+  // The list always opens downward. If it would run past the bottom of the screen, scroll just enough to show all of it.
+  useEffect(() => {
+    if (isOpen) pop.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [isOpen]);
   useEffect(() => {
     if (!isOpen) return;
     const away = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(null); };
@@ -39,7 +44,7 @@ function Menu({ id, open, setOpen, label, value, children, wide = false }: {
         <Chevron size={17} strokeWidth={1.75} className={isOpen ? 'text-chart' : 'text-grey'} />
       </button>
       {isOpen && (
-        <div className={`absolute bottom-full left-0 z-50 mb-3 rounded-xl border-2 border-line bg-page py-2 shadow-2xl ${wide ? 'w-72' : 'w-64'}`}>{children}</div>
+        <div ref={pop} className={`absolute left-0 top-full z-50 mt-3 rounded-xl border-2 border-line bg-page py-2 shadow-2xl ${wide ? 'w-72' : 'w-64'}`}>{children}</div>
       )}
     </div>
   );
