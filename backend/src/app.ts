@@ -194,10 +194,11 @@ export function createApp(deps: Deps) {
     const message = typeof body.message === 'string' ? body.message.trim() : '';
     if (!message) throw new HttpError(400, 'message is required');
     if (message.length > MAX_QUESTION) throw new HttpError(400, `message must be at most ${MAX_QUESTION} characters`);
-    const chat = smalltalk(message, (await customer()).name.split(' ')[0]);
-    if (chat) return void res.json(chat);
     const llm = llms[0] ?? null;
-    const intent = await parseIntent(llm, message);
+    // Greetings and "what can you do?" are answered by Gemini too; the fixed reply is only the backup.
+    const small = smalltalk(message, (await customer()).name.split(' ')[0]);
+    if (small && !llm) return void res.json(small);
+    const intent = small ? { onTopic: true, extraPerWeek: null, focus: 'general' as const } : await parseIntent(llm, message);
     if (!intent.onTopic) return void res.json(refusal());
     const fromClient = typeof body.extraPerWeek === 'number' && body.extraPerWeek >= 0 && body.extraPerWeek <= MAX_EXTRA ? body.extraPerWeek : undefined;
     const { c, avg, extra, plan, bi } = await planFor(intent.extraPerWeek ?? fromClient, req.query);
@@ -207,7 +208,7 @@ export function createApp(deps: Deps) {
       customer: c, extraPerWeek: roundMoney(extra), avgPerWeek: roundMoney(avg), plan, biweekly: bi,
       roundups: { weeks: summary.completedWeeks, totalCents: summary.totalCents, avgPerWeekCents: summary.avgPerWeekCents, thisWeekCents: summary.weekly.find((w) => w.week === thisWeekKey)?.roundupCents ?? 0 },
       recent,
-    }, intent);
+    }, intent, undefined, small ?? undefined);
     res.json({ ...reply, extraPerWeek: roundMoney(extra) });
   });
 

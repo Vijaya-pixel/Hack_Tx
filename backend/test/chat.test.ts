@@ -59,21 +59,38 @@ describe('intent', () => {
 });
 
 describe('greetings and small talk', () => {
-  test('hi, thanks, bye and "what can you do" get a friendly reply, with no AI call', async () => {
+  test('with Gemini, "hi" is answered by Gemini (one call, no classifier), and real off-topic is still refused', async () => {
     const g = fakeGemini();
     const t = await start(g.llm);
     try {
       const hi = (await t.ask('hi')).body;
-      assert.equal(hi.source, 'smalltalk');
-      assert.match(hi.text, /^Hi Vijay!/);
-      assert.equal((await t.ask('Hello there!')).body.source, 'smalltalk');
-      assert.equal((await t.ask('thanks!')).body.source, 'smalltalk');
-      assert.equal((await t.ask('bye')).body.source, 'smalltalk');
-      assert.match((await t.ask('What can you do?')).body.text, /monthly payment/);
-      assert.equal(g.calls.length, 0);
-      // a real off-topic question is still refused
+      assert.equal(hi.source, 'gemini');
+      assert.equal(g.calls.length, 1);
+      assert.equal(g.calls[0].json, false);
+      assert.match(g.calls[0].prompt, /greeting, thanks, goodbye/);
+      assert.equal((await t.ask('thanks!')).body.source, 'gemini');
       assert.equal((await t.ask('Tell me a joke about cats')).body.source, 'refusal');
     } finally { t.close(); }
+  });
+  test('without an AI, small talk gets the fixed friendly reply', async () => {
+    const t = await start(null);
+    try {
+      const hi = (await t.ask('hi')).body;
+      assert.equal(hi.source, 'smalltalk');
+      assert.match(hi.text, /^Hi Vijay!/);
+      assert.match((await t.ask('What can you do?')).body.text, /monthly payment/);
+    } finally { t.close(); }
+  });
+  test('if Gemini fails or invents a number on small talk, the fixed reply is used', async () => {
+    const failing: Llm = { source: 'gemini', model: 'x', complete: async () => { throw new Error('quota'); } };
+    const t = await start(failing);
+    try {
+      const r = (await t.ask('hello')).body;
+      assert.equal(r.source, 'smalltalk');
+      assert.match(r.rejected, /quota/);
+    } finally { t.close(); }
+    const t2 = await start(fakeGemini({ invent: true }).llm);
+    try { assert.equal((await t2.ask('hey')).body.source, 'smalltalk'); } finally { t2.close(); }
   });
 });
 
