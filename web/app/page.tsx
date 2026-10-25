@@ -1,40 +1,78 @@
 'use client';
-import Link from 'next/link';
-import type { Feed, Roundups } from '@/lib/api';
-import { monthYear, usd } from '@/lib/format';
+import { useEffect, useState } from 'react';
+import { api, type Customer, type Explanation, type Feed, type HardshipKind, type Health, type Plan, type Preset, type Roundups } from '@/lib/api';
 import { useApi } from '@/lib/useApi';
-import { useShared } from './components/Shell';
+import { AskCard } from './components/AskCard';
+import { Header } from './components/Header';
+import { HardshipDialog } from './components/HardshipDialog';
+import { LiveCard } from './components/LiveCard';
+import { LoanCard } from './components/LoanCard';
+import { RoundupsCard } from './components/RoundupsCard';
+import { Tiles } from './components/Tiles';
+import { TightCard } from './components/TightCard';
 
-function Tile({ href, title, pillar, big, small }: { href: string; title: string; pillar?: string; big: string; small: string }) {
-  return (
-    <Link href={href} className="group rounded-2xl border border-line bg-white p-5 shadow-sm transition hover:border-toyota">
-      <div className="flex items-baseline justify-between">
-        <h2 className="font-semibold">{title}</h2>
-        {pillar && <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">{pillar}</span>}
-      </div>
-      <p className="mt-3 text-2xl font-semibold tracking-tight">{big}</p>
-      <p className="mt-1 text-sm text-muted">{small}</p>
-      <p className="mt-3 text-sm font-medium text-toyota-dark group-hover:underline">Open →</p>
-    </Link>
-  );
+const MODE_NAMES: Record<string, string> = { tigerdata: 'TigerData', postgres: 'Postgres', memory: 'demo memory', cortex: 'Snowflake Cortex', template: 'built-in template', snowflake: 'Snowflake', local: 'local seed' };
+
+function useDebounced<T>(value: T, ms: number): T {
+  const [v, setV] = useState(value);
+  useEffect(() => { const t = setTimeout(() => setV(value), ms); return () => clearTimeout(t); }, [value, ms]);
+  return v;
 }
 
-export default function Overview() {
-  const { plan } = useShared();
-  const roundups = useApi<Roundups>('/api/roundups?range=12w');
-  const feed = useApi<Feed>('/api/feed?limit=1');
-  const r = roundups.data, p = plan.data, latest = feed.data?.items[0];
-  const dash = '…';
+export default function Dashboard() {
+  const customer = useApi<Customer>('/api/customer');
+  const health = useApi<Health>('/api/health', 10_000);
+  const feed = useApi<Feed>('/api/feed?limit=30', 3000);
+  const running = feed.data?.running ?? false;
+  const roundups = useApi<Roundups>('/api/roundups?range=12w', running ? 4000 : 0);
+
+  // The slider value; round-ups OFF plans with $0.
+  const [extra, setExtra] = useState<number | null>(null);
+  const [enabled, setEnabled] = useState(true);
+  const debounced = useDebounced(extra, 150);
+  const plan = useApi<Plan>(`/api/plan${debounced === null ? '' : `?extraPerWeek=${enabled ? debounced : 0}`}`);
+  useEffect(() => { if (extra === null && plan.data) setExtra(plan.data.avgPerWeek); }, [extra, plan.data]);
+
+  const [preset, setPreset] = useState<Preset>('worth');
+  const [askRuns, setAskRuns] = useState(0); // 0 = not asked yet
+  const settled = useDebounced(enabled ? extra : 0, 400);
+  const explain = useApi<Explanation>(askRuns === 0 || settled === null ? null : `/api/explain?preset=${preset}&extraPerWeek=${settled}&run=${askRuns}`);
+
+  const [dialog, setDialog] = useState<HardshipKind | null>(null);
+  const [demoBusy, setDemoBusy] = useState(false);
+  async function toggleDemo() {
+    setDemoBusy(true);
+    try { await api(`/api/simulator/${running ? 'stop' : 'start'}`, { method: 'POST' }); feed.reload(); }
+    finally { setDemoBusy(false); }
+  }
+  const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
   return (
-    <>
-      <p className="max-w-2xl text-lg">Round up everyday purchases to the next dollar and put the spare change toward your loan principal.</p>
-      <div className="mt-5 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-        <Tile href="/roundups" title="Your round-ups" pillar="Personalize" big={r ? usd(r.total) : dash} small={r ? `rounded up in ${r.weeks} weeks` : 'Loading…'} />
-        <Tile href="/live" title="Live feed" big={latest ? `${usd(latest.roundup)} to your loan` : dash} small={latest ? `${latest.category} · ${latest.merchant}` : 'Loading…'} />
-        <Tile href="/what-if" title="What if" pillar="Simplify · Value" big={p ? `${p.kpis.monthsSaved} months sooner` : dash} small={p ? `${usd(p.kpis.interestSaved)} less interest, paid off ${monthYear(p.kpis.newPayoffDate)}` : 'Loading…'} />
-        <Tile href="/ask" title="Ask" pillar="Guide" big="Is this worth it?" small="Plain-language answers to three common questions" />
-        <Tile href="/help" title="Money is tight?" pillar="Self-service" big="Requests, not changes" small="Pause, bi-weekly or a maintenance credit" />
-      </div>
-    </>
+    <div className="mx-auto max-w-[1360px] px-4 py-5 md:px-8 md:py-8">
+      <Header name={customer.data?.name} feed={feed.data} />
+      <main className="mt-6 grid gap-6 lg:grid-cols-3">
+        <div className="flex flex-col gap-6">
+          <RoundupsCard state={roundups} />
+          <Tiles running={running} busy={demoBusy} onToggleDemo={toggleDemo} onRequest={setDialog}
+            onPlan={() => scrollTo('loan')} onAsk={() => scrollTo('ask')} />
+          <TightCard open={dialog !== null} onToggle={(v) => setDialog(v ? 'biweekly' : null)} />
+        </div>
+        <div className="flex flex-col gap-6">
+          <AskCard id="ask" state={explain} preset={preset} asked={askRuns > 0}
+            onPick={(p) => { setPreset(p); setAskRuns((n) => n + 1); }} onAsk={() => setAskRuns((n) => n + 1)} />
+          <LiveCard state={feed} busy={demoBusy} onToggle={toggleDemo} />
+        </div>
+        <LoanCard id="loan" customer={customer} plan={plan} extra={extra ?? 0} onExtra={setExtra} enabled={enabled} onEnabled={setEnabled} />
+      </main>
+      <HardshipDialog kind={dialog} plan={plan.data} onKind={setDialog} onClose={() => setDialog(null)} />
+      <footer className="mt-8 text-xs text-grey">
+        <p>Concept for Toyota Financial Services. Not an official Toyota app. All data is synthetic.</p>
+        {health.data && (
+          <p className="mt-1">
+            Transactions: {MODE_NAMES[health.data.database.mode] ?? health.data.database.mode} · Customer: {MODE_NAMES[health.data.snowflake.customerSource] ?? health.data.snowflake.customerSource} · Explanations: {MODE_NAMES[health.data.ai.mode] ?? health.data.ai.mode}
+          </p>
+        )}
+      </footer>
+    </div>
   );
 }

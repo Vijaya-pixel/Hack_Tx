@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
+import { GeistSans } from 'geist/font/sans';
 import './globals.css';
-import { Shell } from './components/Shell';
 
 export const metadata: Metadata = {
   title: 'Round-Up · Concept for Toyota Financial Services',
@@ -9,8 +9,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="antialiased"><Shell>{children}</Shell></body>
+    <html lang="en" className={GeistSans.variable}>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

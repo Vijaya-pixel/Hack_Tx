@@ -1,11 +1,11 @@
 // The HTTP API. Everything it needs comes in through `deps`, so tests can pass fakes.
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
-import { biweekly, compare, monthlyPayment, payoff, roundMoney } from './loan.ts';
+import { biweekly, compare, payoff, percentPaid, roundMoney } from './loan.ts';
 import type { Payoff } from './loan.ts';
 import type { Store } from './store.ts';
 import type { Simulator } from './simulator.ts';
-import { CUSTOMER_ID } from './seed.ts';
+import { CUSTOMER_ID, weekStart } from './seed.ts';
 import { HARDSHIP_KINDS } from './customers.ts';
 import type { Customer, CustomerRepo, HardshipKind } from './customers.ts';
 import { explain, PRESETS } from './explain.ts';
@@ -76,15 +76,20 @@ export function createApp(deps: Deps) {
 
   app.get('/api/customer', async (_req, res) => {
     const c = await customer();
-    res.json({ ...c, monthlyPayment: roundMoney(c.monthlyPayment), source: deps.repo.source });
+    res.json({ ...c, monthlyPayment: roundMoney(c.monthlyPayment), percentPaid: percentPaid(c.originalAmount, c.balance), source: deps.repo.source });
   });
 
   app.get('/api/roundups', async (req, res) => {
     const range = String(req.query.range ?? '12w');
     if (range !== '12w') throw new HttpError(400, 'Only range=12w is supported');
     const s = await deps.store.roundups(CUSTOMER_ID, now());
+    const thisWeekKey = weekStart(now()).toISOString().slice(0, 10);
+    const thisWeek = dollars(s.weekly.find((w) => w.week === thisWeekKey)?.roundupCents ?? 0);
+    const avg = dollars(s.avgPerWeekCents);
     res.json({
       range,
+      thisWeek,
+      thisWeekProgress: avg > 0 ? Math.round(Math.min(1, thisWeek / avg) * 1000) / 1000 : 0,
       source: s.mode,
       weeks: s.completedWeeks,
       total: dollars(s.totalCents),

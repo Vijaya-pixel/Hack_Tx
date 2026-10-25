@@ -42,7 +42,7 @@ If `snowflake:check` says your region lacks the Cortex model, set `SNOWFLAKE_COR
 
 ## 2-minute demo script
 
-1. **Header (10s):** Alex's RAV4 loan. Point at the "Demo data" label.
+1. **Header (10s):** Alex and the RAV4 loan card. Point at the "Demo data" label.
 2. **Your round-ups (20s):** 12 weeks of weekly bars from TigerData and the total rounded up.
 3. **Live feed (25s):** press Start demo; a purchase lands every 3 seconds, each with its round-up. Mention the continuous aggregate behind the chart.
 4. **What if (35s):** the slider starts at Alex's real average. Drag it up and watch the curves, months saved, interest saved and payoff date change. Round-ups go to principal.

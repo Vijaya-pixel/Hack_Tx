@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addMonths, biweekly, compare, monthlyPayment, payoff, roundMoney, roundUp } from '../src/loan.ts';
+import { percentPaid, addMonths, biweekly, compare, monthlyPayment, payoff, roundMoney, roundUp } from '../src/loan.ts';
 
 const close = (a: number, b: number, eps = 0.01) => assert.ok(Math.abs(a - b) <= eps, `${a} vs ${b}`);
 
@@ -81,5 +81,15 @@ describe('compare and biweekly', () => {
   test('helpers', () => {
     assert.equal(roundMoney(1.005 * 100) / 100 > 0, true);
     assert.equal(addMonths(new Date('2026-12-15T00:00:00Z'), 2), '2027-02');
+  });
+});
+
+describe('percentPaid', () => {
+  test('share of the original loan paid, one decimal, clamped', () => {
+    assert.equal(percentPaid(35000, 28000), 20);
+    assert.equal(percentPaid(35000, 0), 100);
+    assert.equal(percentPaid(30000, 31000), 0);
+    assert.equal(percentPaid(3, 2), 33.3);
+    assert.throws(() => percentPaid(0, 0));
   });
 });

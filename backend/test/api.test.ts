@@ -40,11 +40,14 @@ describe('API in fallback mode', () => {
     const { body } = await api.get('/api/customer');
     assert.equal(body.name, 'Alex Rivera');
     assert.ok(Math.abs(body.monthlyPayment - 656) < 1);
+    assert.equal(body.percentPaid, 20);
   });
 
   test('roundups returns weekly bars and the real average', async () => {
     const { body } = await api.get('/api/roundups?range=12w');
     assert.equal(body.weeks, 12);
+    assert.equal(body.thisWeek, 0);
+    assert.equal(body.thisWeekProgress, 0);
     assert.ok(body.weekly.length >= 12);
     assert.ok(Math.abs(body.avgPerWeek - body.total / 12) < 0.01);
     assert.equal((await api.get('/api/roundups?range=5y')).status, 400);

@@ -25,6 +25,12 @@ export function roundUp(amountCents: number): number {
   return rest === 0 ? 0 : 100 - rest;
 }
 
+// Share of the original loan already paid down, in percent with one decimal.
+export function percentPaid(original: number, balance: number): number {
+  if (!(original > 0) || balance < 0) throw new Error('original must be > 0 and balance >= 0');
+  return Math.round(Math.min(100, Math.max(0, ((original - balance) / original) * 100)) * 10) / 10;
+}
+
 export function roundMoney(x: number): number {
   return Math.round(x * 100) / 100;
 }

@@ -1,7 +1,7 @@
 // Types for what the API returns, and a small fetch helper. No money math lives here.
-export interface Customer { id: string; name: string; vehicle: string; balance: number; apr: number; monthsRemaining: number; monthlyPayment: number; source: string }
+export interface Customer { id: string; name: string; vehicle: string; originalAmount: number; percentPaid: number; balance: number; apr: number; monthsRemaining: number; monthlyPayment: number; source: string }
 export interface Roundups {
-  range: string; source: string; weeks: number; total: number; avgPerWeek: number;
+  range: string; source: string; weeks: number; total: number; avgPerWeek: number; thisWeek: number; thisWeekProgress: number;
   weekly: { week: string; amount: number; count: number }[];
 }
 export interface FeedItem { id: number; ts: string; merchant: string; category: string; amount: number; roundup: number }

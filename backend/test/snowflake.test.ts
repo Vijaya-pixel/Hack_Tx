@@ -47,10 +47,11 @@ describe('customer repos', () => {
   });
   test('snowflake repo reads with bound parameters and inserts hardship requests', async () => {
     const { client, calls } = fakeClient((sql) => /FROM CUSTOMERS/.test(sql)
-      ? [{ CUSTOMER_ID: 'alex', NAME: 'Alex Rivera', VEHICLE: '2024 Toyota RAV4 Hybrid', BALANCE: 28000, APR: 5.9, MONTHS_REMAINING: 48 }] : []);
+      ? [{ CUSTOMER_ID: 'alex', NAME: 'Alex Rivera', VEHICLE: '2024 Toyota RAV4 Hybrid', ORIGINAL_AMOUNT: 35000, BALANCE: 28000, APR: 5.9, MONTHS_REMAINING: 48 }] : []);
     const repo = createSnowflakeRepo(client);
     const c = await repo.getCustomer('alex');
     assert.equal(c.balance, 28000);
+    assert.equal(c.originalAmount, 35000);
     assert.deepEqual(calls[0].binds, ['alex']);
     const r = await repo.saveHardship('alex', 'biweekly');
     assert.equal(r.storedIn, 'snowflake');
@@ -67,7 +68,7 @@ describe('customer repos', () => {
     await seedSnowflake(client);
     const sql = calls.map((c) => c.sql).join('\n');
     for (const t of ['CUSTOMERS', 'LOANS', 'HARDSHIP_REQUESTS']) assert.match(sql, new RegExp(`CREATE TABLE IF NOT EXISTS ${t}`));
-    assert.equal(SETUP_SQL.length, 3);
+    assert.match(sql, /ADD COLUMN IF NOT EXISTS ORIGINAL_AMOUNT/);
     assert.match(sql, /INSERT INTO LOANS/);
   });
 });
