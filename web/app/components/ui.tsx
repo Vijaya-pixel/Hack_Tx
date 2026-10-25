@@ -24,7 +24,7 @@ export function Segmented<T extends string | number>({ options, value, onChange,
   options: { value: T; label: string }[]; value: T | null; onChange: (v: T) => void; label: string;
 }) {
   return (
-    <div role="group" aria-label={label} className="flex rounded-full bg-soft p-1">
+    <div role="group" aria-label={label} className="flex rounded-full border-2 border-edge bg-soft p-1">
       {options.map((o) => (
         <button key={String(o.value)} onClick={() => onChange(o.value)} aria-pressed={value === o.value}
           className={`flex-1 rounded-full px-2 py-2 text-sm font-medium transition-colors ${value === o.value ? 'bg-fill text-onfill' : 'text-ink hover:bg-panel'}`}>
@@ -38,7 +38,7 @@ export function Segmented<T extends string | number>({ options, value, onChange,
 export function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
     <button role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)}
-      className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${on ? 'bg-fill' : 'bg-track'}`}>
+      className={`relative h-8 w-14 shrink-0 rounded-full border-2 border-edge transition-colors ${on ? 'bg-fill' : 'bg-track'}`}>
       <span className={`absolute top-1 h-6 w-6 rounded-full shadow transition-all ${on ? 'bg-onfill' : 'bg-white'} ${on ? 'left-7' : 'left-1'}`} />
     </button>
   );

@@ -3,7 +3,7 @@
 // A small rounded tooltip card shared by both charts. `rows` are label/value pairs already formatted for display.
 export function ChartTip({ title, rows }: { title: string; rows: { label: string; value: string; color?: string }[] }) {
   return (
-    <div className="min-w-40 rounded-2xl border border-line bg-panel px-4 py-3 text-ink shadow-[0_12px_32px_rgba(0,0,0,0.18)]">
+    <div className="min-w-40 rounded-2xl border-[3px] border-edge bg-panel px-4 py-3 text-ink shadow-[4px_4px_0_var(--edge)]">
       <p className="label mb-2">{title}</p>
       <ul className="space-y-1.5">
         {rows.map((r) => (

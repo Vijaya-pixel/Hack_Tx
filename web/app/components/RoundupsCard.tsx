@@ -24,19 +24,13 @@ export function RoundupsCard({ state }: { state: Loaded<Roundups> }) {
               <div className="h-56 w-full" role="img" aria-label="Weekly round-up totals">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data.weekly} margin={{ top: 14, right: 8, left: -14, bottom: 0 }} barCategoryGap="24%">
-                    <defs>
-                      <linearGradient id="barFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0" style={{ stopColor: 'var(--chart)', stopOpacity: 0.95 }} />
-                        <stop offset="1" style={{ stopColor: 'var(--chart)', stopOpacity: 0.35 }} />
-                      </linearGradient>
-                    </defs>
                     <XAxis dataKey="week" tickFormatter={shortDay} tick={{ fontSize: 11, fill: 'var(--color-grey)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={28} />
                     <YAxis tickFormatter={(v: number) => `$${v}`} tick={{ fontSize: 11, fill: 'var(--color-grey)' }} axisLine={false} tickLine={false} width={44} tickCount={4} />
-                    <Tooltip cursor={{ fill: 'var(--color-soft)', radius: 12 }} content={({ active, payload, label }) => active && payload?.length
+                    <Tooltip cursor={{ fill: 'var(--color-soft)' }} content={({ active, payload, label }) => active && payload?.length
                       ? <ChartTip title={`Week of ${shortDay(String(label))}`} rows={[{ label: 'Round-ups', value: usd2(Number(payload[0].value)), color: 'var(--chart)' }, { label: 'Purchases', value: String(payload[0].payload.count) }]} /> : null} />
                     <ReferenceLine y={data.avgPerWeek} stroke="var(--color-grey)" strokeDasharray="5 5" />
-                    <Bar dataKey="amount" radius={[10, 10, 10, 10]} isAnimationActive={false}>
-                      {data.weekly.map((w, i) => <Cell key={w.week} fill={i === data.weekly.length - 1 ? 'var(--chart)' : 'url(#barFill)'} />)}
+                    <Bar dataKey="amount" radius={0} stroke="var(--edge)" strokeWidth={2} isAnimationActive={false}>
+                      {data.weekly.map((w, i) => <Cell key={w.week} fill="var(--chart)" fillOpacity={i === data.weekly.length - 1 ? 1 : 0.55} />)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>

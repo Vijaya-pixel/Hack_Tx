@@ -5,6 +5,7 @@ import type { Roundups } from '@/lib/api';
 import { usd, usd2 } from '@/lib/format';
 import { useApi } from '@/lib/useApi';
 import { Car } from './components/Car';
+import { PixelScene } from './components/PixelScene';
 import { Gauge } from './components/PayoffCard';
 import { RoundupsCard } from './components/RoundupsCard';
 import { useShared } from './components/Shell';
@@ -35,16 +36,16 @@ export default function Home() {
     <div className="space-y-24 md:space-y-32">
       {/* Hero: photo, big headline, and a card of the loan's key numbers that overlaps the bottom edge */}
       <section className="relative pb-24 md:pb-20">
-        <div className="relative h-[480px] overflow-hidden rounded-[32px] border border-line bg-panel md:h-[600px]">
+        <div className="scene-sky relative h-[500px] overflow-hidden border-[3px] border-edge shadow-[8px_8px_0_var(--edge)] md:h-[620px]">
+          <PixelScene />
           <div className="relative z-10 p-6 md:p-12">
-            <p className="label">{c ? `Hi, ${c.name.split(' ')[0]}` : 'Welcome'}</p>
-            <h1 className="mt-3 text-[44px] font-medium leading-[0.98] tracking-[-0.04em] md:text-[88px]">
-              Round up.<br />Pay off sooner.
-            </h1>
+            <p className="label !text-ink">{c ? `Hi, ${c.name.split(' ')[0]}` : 'Welcome'}</p>
+            <h1 className="press mt-4 text-[24px] md:text-[50px]" style={{ textShadow: '4px 4px 0 var(--toyota)' }}>ROUND UP.<br />PAY OFF<br />SOONER.</h1>
           </div>
-          <div className="absolute bottom-16 right-2 w-[86%] md:bottom-12 md:right-8 md:w-[56%]"><Car /></div>
+          <div className="scene-road absolute inset-x-0 bottom-0 h-24" />
+          <div className="scene-car absolute bottom-6 right-2 w-[78%] md:bottom-4 md:right-14 md:w-[46%]"><Car /></div>
         </div>
-        <div className="absolute inset-x-4 bottom-0 rounded-3xl bg-panel p-5 shadow-[0_20px_60px_rgba(0,0,0,0.18)] md:inset-x-12 md:p-6">
+        <div className="absolute inset-x-4 bottom-0 border-[3px] border-edge bg-panel p-5 shadow-[6px_6px_0_var(--edge)] md:inset-x-12 md:p-6">
           {customer.error && !c ? <ErrorNote message={customer.error} retry={customer.reload} /> : (
             <div className="grid items-end gap-4 md:grid-cols-[repeat(4,1fr)_auto]">
               <HeroStat label="Vehicle" value={c?.vehicle.replace(/^2024 Toyota /, '2024 ')} />
@@ -59,7 +60,7 @@ export default function Home() {
 
       {/* Editorial intro */}
       <section className="grid gap-8 md:grid-cols-2 md:items-start">
-        <h2 className="text-4xl font-medium leading-[1.02] tracking-[-0.035em] md:text-6xl">Spare change,<br />real progress.</h2>
+        <h2 className="pix-shadow text-5xl font-semibold leading-[1] md:text-7xl">Spare change,<br />real progress.</h2>
         <div>
           <p className="copy text-lg leading-relaxed text-grey">
             Every card purchase rounds up to the next dollar. That spare change goes straight to your loan principal, so you pay off sooner and owe less interest. It adds up quietly in the background.
@@ -101,11 +102,11 @@ export default function Home() {
       </section>
 
       {/* Closing band */}
-      <section className="rounded-[32px] bg-[#0b0b0b] px-6 py-16 text-center text-white md:py-24">
-        <h2 className="text-4xl font-medium leading-[1.02] tracking-[-0.035em] md:text-6xl">Ready to pay off sooner?</h2>
+      <section className="border-[3px] border-edge bg-[#0b0b0b] px-6 py-16 text-center text-white shadow-[8px_8px_0_var(--toyota)] md:py-24">
+        <h2 className="press text-xl leading-[1.4] md:text-4xl">READY TO PAY OFF SOONER?</h2>
         <p className="copy mx-auto mt-4 max-w-xl text-white/60">Pick how much extra you put in each week and watch the months fall away.</p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href="/plans" className="rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-black transition-transform hover:scale-[1.03]">Get started</Link>
+          <Link href="/plans" className="border-[3px] border-white bg-white px-7 py-3.5 text-sm font-semibold text-black shadow-[4px_4px_0_var(--toyota)] transition-transform hover:-translate-y-0.5">Get started</Link>
           <Link href="/live" className="rounded-full border border-white/25 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">Watch it live</Link>
         </div>
       </section>

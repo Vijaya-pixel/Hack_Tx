@@ -1,9 +1,29 @@
-// The demo customer's car: a transparent cutout from a studio photo, kept in /public, so it sits on any surface
-// (white, grey or dark) with just a soft ground shadow. Shows a Toyota RAV4 Hybrid (2022 to 2025 styling).
+import { H, PALETTE, PIXEL_CAR, W } from './pixelCar';
+
+// Horizontal runs of the same colour become one rectangle each, so the SVG stays small.
+const RECTS = (() => {
+  const out: { x: number; y: number; w: number; c: string }[] = [];
+  PIXEL_CAR.forEach((row, y) => {
+    let x = 0;
+    while (x < W) {
+      const c = row[x];
+      let w = 1;
+      while (x + w < W && row[x + w] === c) w++;
+      if (c !== '.') out.push({ x, y, w, c });
+      x += w;
+    }
+  });
+  return out;
+})();
+
+// The demo customer's car: a cartoon pixel-art compact SUV, drawn from a grid in pixelCar.ts. Original art, no logos.
 export function Car({ className = '' }: { className?: string }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src="/rav4-cutout.webp" width={1100} height={487} alt="Silver Toyota RAV4 Hybrid with black alloy wheels"
-      className={`h-auto w-full select-none drop-shadow-[0_22px_20px_rgba(0,0,0,0.22)] ${className}`} loading="eager" draggable={false} />
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Pixel-art illustration of a red compact SUV" shapeRendering="crispEdges"
+      className={`h-auto w-full select-none ${className}`}>
+      {RECTS.map((r, i) => (
+        <rect key={i} x={r.x} y={r.y} width={r.w} height={1} fill={PALETTE[r.c].fill} fillOpacity={PALETTE[r.c].opacity ?? 1} />
+      ))}
+    </svg>
   );
 }

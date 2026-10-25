@@ -23,10 +23,10 @@ export function Header({ name, feed, path }: { name?: string; feed: Feed | null;
       className={`${size} whitespace-nowrap transition-colors ${active(href) ? 'font-semibold text-ink underline decoration-toyota decoration-[3px] underline-offset-[10px]' : 'text-grey hover:text-ink'}`}>{label}</Link>
   );
   return (
-    <header className="border-b border-line bg-page">
+    <header className="border-b-[3px] border-edge bg-page">
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-4 md:px-6">
         <div className="col-start-1 text-left">
-          <Link href="/" className="block"><p className="wordmark text-sm uppercase tracking-[0.2em] md:text-base">Round·Up</p>
+          <Link href="/" className="block"><p className="wordmark text-xs uppercase tracking-[0.12em] md:text-sm">Round·Up</p>
           <p className="label mt-1 !text-toyota">Toyota Financial Services · Concept</p></Link>
         </div>
         <nav aria-label="Sections" className="hidden items-center justify-center gap-8 md:col-start-2 md:flex xl:gap-12">
