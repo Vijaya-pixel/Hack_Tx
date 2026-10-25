@@ -1,6 +1,9 @@
 import { describe, test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Server } from 'node:http';
+import { randomBytes } from 'node:crypto';
+import { createCrypto } from '../src/crypto.ts';
+import { createMemoryRecords } from '../src/records.ts';
 import { createApp } from '../src/app.ts';
 import { createMemoryStore } from '../src/store.ts';
 import { createSimulator } from '../src/simulator.ts';
@@ -138,6 +141,73 @@ describe('API in fallback mode', () => {
     const r = await api.get('/api/nope');
     assert.equal(r.status, 404);
     assert.ok(r.body.error);
+  });
+});
+
+describe('API: stored inputs, sessions and encryption', () => {
+  async function boot() {
+    const crypto = createCrypto({ DATA_ENCRYPTION_KEY: randomBytes(32).toString('base64'), HASH_SECRET: randomBytes(16).toString('hex') });
+    const records = createMemoryRecords(crypto);
+    const store = createMemoryStore(NOW);
+    const app = createApp({ store, simulator: createSimulator(store, 10), repo: createLocalRepo(), records, crypto, now: () => NOW });
+    const server: Server = await new Promise((res) => { const s = app.listen(0, () => res(s)); });
+    const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+    const call = async (path: string, init: RequestInit = {}, cookie?: string) => {
+      const r = await fetch(base + path, { ...init, headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}) } });
+      return { status: r.status, body: (await r.json()) as any, setCookie: r.headers.get('set-cookie') };
+    };
+    return { call, records, close: () => server.close() };
+  }
+  const post = (b: unknown) => ({ method: 'POST', body: JSON.stringify(b) });
+
+  test('a visitor gets an httpOnly session cookie, and the stored session is a hash of it', async () => {
+    const t = await boot();
+    try {
+      const first = await t.call('/api/health');
+      assert.match(first.setCookie!, /^rg_sid=[a-f0-9]{32}; Path=\/; HttpOnly; SameSite=Lax/);
+      const cookie = first.setCookie!.split(';')[0];
+      const again = await t.call('/api/health', {}, cookie);
+      assert.equal(again.setCookie, null); // known visitor: no new cookie
+      await t.call('/api/inputs', post({ balance: 20000, apr: 4, months: 36, vehicle: '2024 Toyota Camry' }), cookie);
+      const stored = JSON.stringify(t.records.rows.loan_inputs);
+      assert.ok(!stored.includes(cookie.split('=')[1])); // the raw id is never stored
+    } finally { t.close(); }
+  });
+
+  test('inputs are saved encrypted, read back per session, and validated', async () => {
+    const t = await boot();
+    try {
+      const a = (await t.call('/api/health')).setCookie!.split(';')[0];
+      const b = (await t.call('/api/health')).setCookie!.split(';')[0];
+      const saved = await t.call('/api/inputs', post({ balance: 31234, apr: 4.5, months: 40, vehicle: '2024 Toyota Camry' }), a);
+      assert.equal(saved.status, 201);
+      assert.ok(!JSON.stringify(t.records.rows.loan_inputs).includes('31234'));
+      const mine = (await t.call('/api/inputs', {}, a)).body.items;
+      assert.equal(mine.length, 1);
+      assert.deepEqual([mine[0].balance, mine[0].vehicle], [31234, '2024 Toyota Camry']);
+      assert.deepEqual((await t.call('/api/inputs', {}, b)).body.items, []); // another visitor sees nothing
+      for (const bad of [{ balance: 5, apr: 4, months: 36 }, { balance: 20000, apr: 99, months: 36 }, { balance: 20000, apr: 4, months: 12.5 }, { balance: '20000', apr: 4, months: 36 }, {}]) {
+        assert.equal((await t.call('/api/inputs', post(bad), a)).status, 400);
+      }
+      assert.equal((await t.call('/api/inputs', post({ balance: 20000, apr: 4, months: 36, vehicle: 'Hovercraft' }), a)).status, 201); // unknown model falls back to the default
+    } finally { t.close(); }
+  });
+
+  test('questions and requests are stored without exposing the text', async () => {
+    const t = await boot();
+    try {
+      await t.call('/api/chat', post({ message: 'Tell me a joke about my cat' }));
+      await t.call('/api/chat', post({ message: 'What if I pay $30 a week?' }));
+      await t.call('/api/hardship', post({ kind: 'pause' }));
+      await new Promise((r) => setTimeout(r, 20));
+      assert.equal(t.records.rows.chat_messages.length, 2);
+      const raw = JSON.stringify(t.records.rows.chat_messages);
+      assert.ok(!raw.includes('joke') && !raw.includes('$30'));
+      assert.equal(t.records.rows.hardship_requests.length, 1);
+      const health = (await t.call('/api/health')).body;
+      assert.equal(health.records.mode, 'memory');
+      assert.equal(health.records.encryption, 'configured');
+    } finally { t.close(); }
   });
 });
 

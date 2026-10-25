@@ -9,7 +9,7 @@ import { PixelScene } from './components/PixelScene';
 import { Gauge } from './components/PayoffCard';
 import { RoundupsCard } from './components/RoundupsCard';
 import { useShared } from './components/Shell';
-import { LoanForm } from './components/LoanForm';
+import { LoanInputs } from './components/LoanInputs';
 import { Card, ErrorNote, Skeleton } from './components/ui';
 
 const LINKS = [
@@ -36,27 +36,28 @@ export default function Home() {
     <div className="space-y-24 md:space-y-32">
       {/* Hero: full-width pixel landscape under the nav, with the car driving across it (no box around it) */}
       <section className="relative left-1/2 -mt-8 w-screen -translate-x-1/2">
-        <div className="scene-sky relative h-[calc(100svh-4.75rem)] min-h-[600px] overflow-hidden md:min-h-[640px]">
+        <div className="scene-sky relative h-[calc(100svh-4.75rem-6.5rem)] min-h-[520px] overflow-hidden">
           <PixelScene />
           <div className="relative z-10 mx-auto max-w-[1360px] px-4 pt-10 md:px-8 md:pt-14">
             <p className="label !text-white/85">{c ? `Hi, ${c.name.split(' ')[0]}` : 'Welcome'}</p>
             <h1 className="press mt-4 text-[24px] text-white md:text-[50px]" style={{ textShadow: '4px 4px 0 var(--toyota)' }}>ROUND UP.<br />PAY OFF<br />SOONER.</h1>
           </div>
           <div className="scene-road absolute inset-x-0 bottom-0 h-[88px]" />
-          <div className="absolute inset-x-0 bottom-[112px] z-20">
-            <div className="mx-auto max-w-[1360px] px-4 md:px-8">
-              {customer.error && !c ? <ErrorNote message={customer.error} retry={customer.reload} /> : (
-                <div className="grid gap-3 md:grid-cols-[repeat(4,1fr)_auto]">
-                  <HeroStat label="Vehicle" value={c?.vehicle.replace(/^2024 Toyota /, '2024 ')} />
-                  <HeroStat label="Loan balance" value={c ? usd(c.balance) : undefined} />
-                  <HeroStat label="APR · months left" value={c ? `${c.apr}% · ${c.monthsRemaining} mo` : undefined} />
-                  <HeroStat label="Monthly payment" value={c ? usd2(c.monthlyPayment) : undefined} />
-                  <Link href="/plans" className="skeu flex items-center justify-center px-9 py-4 text-center text-base font-semibold">See my plan</Link>
-                </div>
-              )}
+          <div className="car-drive pointer-events-none absolute bottom-[30px] left-0 z-30 w-[82%] md:w-[44%]">
+            <div className="relative">
+              <Car />
+              <span className="beam" />
+              {[{ top: '34%', w: '22%', d: '0s' }, { top: '52%', w: '30%', d: '-0.18s' }, { top: '68%', w: '18%', d: '-0.34s' }].map((l, i) => (
+                <span key={i} className="speed-line" style={{ top: l.top, width: l.w, animationDelay: l.d }} />
+              ))}
+              {[{ left: '15%', d: '0s' }, { left: '21%', d: '-0.2s' }, { left: '12%', d: '-0.4s' }].map((p, i) => (
+                <span key={i} className="dust" style={{ left: p.left, animationDelay: p.d }} />
+              ))}
             </div>
           </div>
-          <div className="car-drive pointer-events-none absolute bottom-[30px] left-0 z-30 w-[82%] md:w-[40%]"><Car /></div>
+        </div>
+        <div className="mx-auto max-w-[1360px] px-4 pt-4 md:px-8">
+          {customer.error && !c ? <ErrorNote message={customer.error} retry={customer.reload} /> : <LoanInputs customer={c} loan={loan} onChange={setLoan} />}
         </div>
       </section>
 
@@ -81,9 +82,8 @@ export default function Home() {
               <div className="my-4 w-full"><Car /></div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="pop rounded-3xl bg-panel p-4"><p className="label">Monthly payment</p><p className="big mt-3 text-3xl">{usd2(c.monthlyPayment)}</p></div>
-                <div className="pop rounded-3xl bg-panel p-4"><p className="label">Loan paid off</p><div className="mt-2">{c.percentPaid === null ? <p className="copy text-xs text-grey">Add the original amount to see this.</p> : <Gauge pct={c.percentPaid} />}</div></div>
+                <div className="pop rounded-3xl bg-panel p-4"><p className="label">Loan paid off</p><div className="mt-2">{c.percentPaid === null ? <p className="copy text-xs text-grey">Not available for a custom loan.</p> : <Gauge pct={c.percentPaid} />}</div></div>
               </div>
-              <LoanForm customer={c} active={loan !== null} onApply={setLoan} onReset={() => setLoan(null)} />
             </>
           )}
         </Card>

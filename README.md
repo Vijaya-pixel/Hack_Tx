@@ -26,6 +26,15 @@ Tests: `cd backend && npm test`. Web build: `cd web && npm run build`.
 
 `GET /api/health` reports which mode is active. The footer of the page shows it too.
 
+## What we store, and how it is protected
+
+The loan numbers a visitor applies, the questions they ask Gear and the hardship requests they send are saved in **TigerData** as time-series tables (hypertables on `ts`): `loan_inputs`, `chat_messages`, `hardship_requests`. Without a database they are kept in memory the same way.
+
+- **Encryption:** the loan amount, APR and months, and the text of every question and reply, are encrypted with **AES-256-GCM** before they are stored (`backend/src/crypto.ts`). Each value gets a fresh random IV, the table name is authenticated, and any tampering makes decryption fail. The key is `DATA_ENCRYPTION_KEY` in `backend/.env`.
+- **Hashing:** there is no login. Each browser gets a random session id in an `httpOnly`, `SameSite=Lax` cookie, and only an **HMAC-SHA256** hash of it (keyed by `HASH_SECRET`) is stored, never the id. IP addresses are not stored.
+- **Not encrypted, on purpose:** timestamps, the chosen car model, the source of an answer and the request type, which are not sensitive and keep the tables useful.
+- **Keys:** make them with `openssl rand -base64 32` and `openssl rand -hex 32`. Never commit `.env`. If you lose `DATA_ENCRYPTION_KEY`, saved values can no longer be read.
+
 ## Gear, the Gemini-powered agent
 
 The **Ask** page is **Gear**, RoundGear's loan guide, an AI assistant **powered by Google Gemini**. How it works:

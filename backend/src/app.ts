@@ -1,4 +1,5 @@
 // The HTTP API. Everything it needs comes in through `deps`, so tests can pass fakes.
+import { randomBytes } from 'node:crypto';
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { biweekly, compare, payoff, percentPaid, roundMoney } from './loan.ts';
@@ -11,6 +12,10 @@ import { withPayment } from './customers.ts';
 import type { Customer, CustomerRepo, HardshipKind } from './customers.ts';
 import { explain, PRESETS } from './explain.ts';
 import type { Llm, Preset } from './explain.ts';
+import { createCrypto } from './crypto.ts';
+import type { Crypto } from './crypto.ts';
+import { createMemoryRecords } from './records.ts';
+import type { Records } from './records.ts';
 import { answerFromFacts, MAX_QUESTION, parseIntent, refusal, smalltalk } from './chat.ts';
 
 export interface Deps {
@@ -19,6 +24,8 @@ export interface Deps {
   simulator: Simulator;
   repo: CustomerRepo;
   llm?: Llm | Llm[] | null; // AIs to try, in order. When absent, the standard text is used
+  records?: Records;        // where visitors' inputs, questions and requests are saved (encrypted). Default: memory
+  crypto?: Crypto;          // must be the same instance the records use
   now?: () => Date;
 }
 
@@ -70,7 +77,22 @@ export function createApp(deps: Deps) {
   app.use(express.json());
   // Answers change when the code or the numbers change, so never let a browser or proxy reuse an old one.
   app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+  // Anonymous session: a random id in an httpOnly cookie. Only a keyed hash of it is ever stored, never the id itself.
+  app.use('/api', (req, res, next) => {
+    let sid = /(?:^|;\s*)rg_sid=([a-f0-9]{32})/.exec(req.headers.cookie ?? '')?.[1];
+    if (!sid) {
+      sid = randomBytes(16).toString('hex');
+      const secure = req.secure || req.headers['x-forwarded-proto'] === 'https' ? '; Secure' : '';
+      res.append('Set-Cookie', `rg_sid=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000${secure}`);
+    }
+    res.locals.sessionHash = crypto.hash(sid);
+    next();
+  });
   const now = deps.now ?? (() => new Date());
+  const crypto = deps.crypto ?? createCrypto({}); // with no keys given, random ones are made (fine for tests)
+  const records = deps.records ?? createMemoryRecords(crypto);
+  // Saving must never break a request, and the log never contains what was saved.
+  const keep = (p: Promise<void>) => p.catch((e) => console.error('Could not save a record:', (e as Error).message));
   const llms: Llm[] = !deps.llm ? [] : Array.isArray(deps.llm) ? deps.llm : [deps.llm];
 
   let cached: { at: number; value: Customer } | null = null;
@@ -112,6 +134,7 @@ export function createApp(deps: Deps) {
       database: { mode: deps.store.mode, ...(deps.storeReason ? { fallbackReason: deps.storeReason } : {}) },
       customer: { source: deps.repo.source },
       ai: llms.length ? { mode: llms[0].source, model: llms[0].model, order: llms.map((l) => l.source) } : { mode: 'template', order: [] },
+      records: { mode: records.mode, encryption: crypto.ephemeral ? 'temporary key (set DATA_ENCRYPTION_KEY and HASH_SECRET)' : 'configured' },
       simulator: { running: deps.simulator.running() },
     });
   });
@@ -199,7 +222,11 @@ export function createApp(deps: Deps) {
     const small = smalltalk(message, (await customer()).name.split(' ')[0]);
     if (small && !llm) return void res.json(small);
     const intent = small ? { onTopic: true, extraPerWeek: null, focus: 'general' as const } : await parseIntent(llm, message);
-    if (!intent.onTopic) return void res.json(refusal());
+    if (!intent.onTopic) {
+      const r = refusal();
+      keep(records.saveChat({ sessionHash: res.locals.sessionHash, source: r.source, onTopic: false, message, reply: r.text }));
+      return void res.json(r);
+    }
     const fromClient = typeof body.extraPerWeek === 'number' && body.extraPerWeek >= 0 && body.extraPerWeek <= MAX_EXTRA ? body.extraPerWeek : undefined;
     const { c, avg, extra, plan, bi } = await planFor(intent.extraPerWeek ?? fromClient, req.query);
     const [summary, recent] = await Promise.all([deps.store.roundups(CUSTOMER_ID, now()), deps.store.feed(CUSTOMER_ID, 4)]);
@@ -209,7 +236,28 @@ export function createApp(deps: Deps) {
       roundups: { weeks: summary.completedWeeks, totalCents: summary.totalCents, avgPerWeekCents: summary.avgPerWeekCents, thisWeekCents: summary.weekly.find((w) => w.week === thisWeekKey)?.roundupCents ?? 0 },
       recent,
     }, intent, undefined, small ?? undefined);
+    keep(records.saveChat({ sessionHash: res.locals.sessionHash, source: reply.source, onTopic: true, message, reply: reply.text }));
     res.json({ ...reply, extraPerWeek: roundMoney(extra) });
+  });
+
+  // The loan numbers a visitor applied. Stored encrypted; this session can read back its own.
+  app.post('/api/inputs', async (req, res) => {
+    const b = (req.body ?? {}) as Record<string, unknown>;
+    const num = (v: unknown, label: string, [min, max]: readonly [number, number]): number => {
+      if (typeof v !== 'number' || !Number.isFinite(v) || v < min || v > max) throw new HttpError(400, `${label} must be a number from ${min} to ${max}`);
+      return v;
+    };
+    const balance = num(b.balance, 'balance', LOAN_LIMITS.balance);
+    const apr = num(b.apr, 'apr', LOAN_LIMITS.apr);
+    const months = num(b.months, 'months', LOAN_LIMITS.months);
+    if (!Number.isInteger(months)) throw new HttpError(400, 'months must be a whole number');
+    const vehicle = typeof b.vehicle === 'string' && VEHICLES.includes(b.vehicle) ? b.vehicle : VEHICLES[0];
+    await records.saveLoanInput({ sessionHash: res.locals.sessionHash, vehicle, balance, apr, months });
+    res.status(201).json({ saved: true, storedIn: records.mode });
+  });
+
+  app.get('/api/inputs', async (_req, res) => {
+    res.json({ items: await records.recentLoanInputs(res.locals.sessionHash, 5) });
   });
 
   app.post('/api/hardship', async (req, res) => {
@@ -217,7 +265,9 @@ export function createApp(deps: Deps) {
     if (typeof kind !== 'string' || !HARDSHIP_KINDS.includes(kind as HardshipKind)) {
       throw new HttpError(400, `kind must be one of ${HARDSHIP_KINDS.join(', ')}`);
     }
-    res.status(201).json(await deps.repo.saveHardship(CUSTOMER_ID, kind as HardshipKind));
+    const saved = await deps.repo.saveHardship(CUSTOMER_ID, kind as HardshipKind);
+    keep(records.saveHardship({ id: saved.id, sessionHash: res.locals.sessionHash, kind: saved.kind, status: saved.status }));
+    res.status(201).json({ ...saved, storedIn: records.mode });
   });
 
   app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found')));

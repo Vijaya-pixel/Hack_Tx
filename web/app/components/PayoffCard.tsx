@@ -93,7 +93,7 @@ export function PayoffCard({ id, customer, plan }: { id: string; customer: Loade
             </div>
             <div className="pop rounded-3xl bg-panel p-4">
               <p className="label">Loan paid off</p>
-              <div className="mt-3">{!c ? <Skeleton className="h-24" /> : c.percentPaid === null ? <p className="copy text-xs text-grey">Add the original loan amount to see this.</p> : <Gauge pct={c.percentPaid} />}</div>
+              <div className="mt-3">{!c ? <Skeleton className="h-24" /> : c.percentPaid === null ? <p className="copy text-xs text-grey">Not available for a custom loan.</p> : <Gauge pct={c.percentPaid} />}</div>
             </div>
           </div>
         </div>
