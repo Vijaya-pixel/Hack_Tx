@@ -2,7 +2,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
 import type { Db } from '../src/db.ts';
-import { bucketFloor, enableHypertable } from '../src/tigerdata.ts';
+import { bucketFloor, createContinuousAggregate, enableHypertable, refreshContinuousAggregate } from '../src/tigerdata.ts';
 
 // A database that records every statement, and can be told to fail on chosen ones.
 // A database that records every statement, says whether TimescaleDB is available, and can fail on chosen statements.
@@ -75,5 +75,42 @@ describe('TigerData helpers', () => {
     assert.equal(bucketFloor(false, 'day', 'ts'), "date_trunc('day', ts)");
     assert.equal(bucketFloor(true, "day'; DROP TABLE x; --" as never, 'ts'), "time_bucket(INTERVAL '1 day', ts)");
     assert.throws(() => bucketFloor(true, 'day', 'ts; DROP TABLE x'), /safe SQL identifier/);
+  });
+});
+
+describe('continuous aggregates', () => {
+  const spec = { view: 'roundups_daily', query: "SELECT time_bucket(INTERVAL '1 day', ts) AS day, sum(roundup_cents) AS total FROM transactions GROUP BY day" };
+
+  test('creates the view WITH NO DATA, then the refresh policy', async () => {
+    const db = recordingDb();
+    assert.equal(await createContinuousAggregate(db, spec), true);
+    assert.equal(db.log.length, 2);
+    assert.match(db.log[0], /CREATE MATERIALIZED VIEW IF NOT EXISTS roundups_daily WITH \(timescaledb\.continuous/);
+    assert.match(db.log[0], /WITH NO DATA$/);
+    assert.match(db.log[1], /add_continuous_aggregate_policy\('roundups_daily'.*if_not_exists => TRUE/);
+  });
+
+  test('a failing create returns false and skips the policy', async () => {
+    const db = recordingDb((sql) => /CREATE MATERIALIZED VIEW/.test(sql));
+    assert.equal(await createContinuousAggregate(db, spec), false);
+    assert.equal(db.log.length, 1);
+  });
+
+  test('a failing policy returns false', async () => {
+    const db = recordingDb((sql) => /add_continuous_aggregate_policy/.test(sql));
+    assert.equal(await createContinuousAggregate(db, spec), false);
+  });
+
+  test('unsafe view names and intervals are rejected before any SQL is sent', async () => {
+    const db = recordingDb();
+    await assert.rejects(() => createContinuousAggregate(db, { ...spec, view: 'x; DROP TABLE y' }), /safe SQL identifier/);
+    await assert.rejects(() => createContinuousAggregate(db, { ...spec, startOffset: "1 day'); DROP" }), /safe interval/);
+    assert.equal(db.log.length, 0);
+  });
+
+  test('refresh calls refresh_continuous_aggregate', async () => {
+    const db = recordingDb();
+    assert.equal(await refreshContinuousAggregate(db, 'roundups_daily'), true);
+    assert.match(db.log[0], /CALL refresh_continuous_aggregate\('roundups_daily', NULL, NULL\)/);
   });
 });

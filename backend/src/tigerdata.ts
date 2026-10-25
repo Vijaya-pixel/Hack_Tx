@@ -48,3 +48,38 @@ export function bucketFloor(timescale: boolean, unit: Unit, column: string): str
   const col = column.split('.').map(ident).join('.'); // allows alias.column
   return timescale ? `time_bucket(INTERVAL '1 ${u}', ${col})` : `date_trunc('${u}', ${col})`;
 }
+
+export interface ContinuousAggregateSpec {
+  view: string;
+  // The SELECT behind the view. It must group by time_bucket(...) and is written by the app, never taken from users.
+  query: string;
+  startOffset?: string;      // how far back the policy refreshes, e.g. '3 months'
+  endOffset?: string;        // how close to now it stops, e.g. '1 hour'
+  scheduleInterval?: string; // how often it runs, e.g. '1 hour'
+}
+
+const INTERVAL = /^\d+ (minute|hour|day|week|month)s?$/;
+const interval = (s: string): string => {
+  if (!INTERVAL.test(s)) throw new Error(`Not a safe interval: ${s}`);
+  return s;
+};
+
+// Creates a continuous aggregate (a materialized view TimescaleDB keeps up to date) and its refresh policy.
+// materialized_only = false makes it include rows newer than the last refresh, so live inserts show up at once.
+// Safe to run on every startup. Returns false if TimescaleDB refuses either statement.
+export async function createContinuousAggregate(db: Db, spec: ContinuousAggregateSpec): Promise<boolean> {
+  const view = ident(spec.view);
+  const start = interval(spec.startOffset ?? '3 months');
+  const end = interval(spec.endOffset ?? '1 hour');
+  const every = interval(spec.scheduleInterval ?? '1 hour');
+  const created = await attempt(db,
+    `CREATE MATERIALIZED VIEW IF NOT EXISTS ${view} WITH (timescaledb.continuous, timescaledb.materialized_only = false) AS ${spec.query} WITH NO DATA`);
+  if (!created) return false;
+  return attempt(db,
+    `SELECT add_continuous_aggregate_policy('${view}', start_offset => INTERVAL '${start}', end_offset => INTERVAL '${end}', schedule_interval => INTERVAL '${every}', if_not_exists => TRUE)`);
+}
+
+// Fills the whole aggregate from the raw table once (used after seeding).
+export async function refreshContinuousAggregate(db: Db, view: string): Promise<boolean> {
+  return attempt(db, `CALL refresh_continuous_aggregate('${ident(view)}', NULL, NULL)`);
+}
