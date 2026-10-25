@@ -1,13 +1,23 @@
 import { connectFromEnv } from '../src/snowflake.ts';
 import { seedSnowflake } from '../src/customers.ts';
 
-const { client, reason } = await connectFromEnv();
+// Connect without a database or schema first, so they can be created if they don't exist yet.
+const { client, reason } = await connectFromEnv({ ...process.env, SNOWFLAKE_DATABASE: undefined, SNOWFLAKE_SCHEMA: undefined });
 if (!client) { console.error(reason); process.exit(1); }
+
+const NAME = /^[A-Za-z_][A-Za-z0-9_$]*$/;
+const db = process.env.SNOWFLAKE_DATABASE || 'ROUNDUP';
+const schema = process.env.SNOWFLAKE_SCHEMA || 'PUBLIC';
 try {
+  if (!NAME.test(db) || !NAME.test(schema)) throw new Error('SNOWFLAKE_DATABASE and SNOWFLAKE_SCHEMA may only contain letters, digits, _ and $');
+  if (process.env.SNOWFLAKE_WAREHOUSE) await client.query(`USE WAREHOUSE ${process.env.SNOWFLAKE_WAREHOUSE}`);
+  await client.query(`CREATE DATABASE IF NOT EXISTS ${db}`);
+  await client.query(`CREATE SCHEMA IF NOT EXISTS ${db}.${schema}`);
+  await client.query(`USE SCHEMA ${db}.${schema}`);
   await seedSnowflake(client);
-  console.log('Created CUSTOMERS, LOANS and HARDSHIP_REQUESTS and seeded Vijay.');
+  console.log(`Created CUSTOMERS, LOANS and HARDSHIP_REQUESTS in ${db}.${schema} and seeded the demo customer.`);
 } catch (e) {
   console.error('Setup failed:', (e as Error).message);
-  console.error('Check that SNOWFLAKE_WAREHOUSE, SNOWFLAKE_DATABASE and SNOWFLAKE_SCHEMA exist and your role can create tables.');
+  console.error('Check that SNOWFLAKE_WAREHOUSE exists and your role can create databases and tables.');
   process.exitCode = 1;
 } finally { await client.close(); }
