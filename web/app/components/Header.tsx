@@ -18,16 +18,16 @@ export function Header({ name, feed, onHelp }: { name?: string; feed: Feed | nul
   return (
     <header className="border-b border-[#eee] bg-white">
       <div className="mx-auto grid max-w-[1360px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-4 md:px-8">
-        <nav aria-label="Sections" className="hidden items-center gap-7 md:flex">
+        <div className="col-start-1 text-left">
+          <p className="wordmark text-sm uppercase tracking-[0.2em] md:text-base">Round·Up</p>
+          <p className="label mt-1 !text-toyota">Toyota Financial Services · Concept</p>
+        </div>
+        <nav aria-label="Sections" className="hidden items-center justify-center gap-7 md:col-start-2 md:flex">
           {NAV.map((n) => (
             <button key={n.id} onClick={() => go(n.id)} className="text-[15px] text-grey transition-colors hover:text-ink">{n.label}</button>
           ))}
           <button onClick={onHelp} className="text-[15px] text-grey transition-colors hover:text-ink">Help</button>
         </nav>
-        <div className="col-start-1 text-left md:col-start-2 md:text-center">
-          <p className="wordmark text-sm uppercase tracking-[0.2em] md:text-base">Round·Up</p>
-          <p className="label mt-1 !text-toyota">Toyota Financial Services · Concept</p>
-        </div>
         <div className="relative col-start-3 flex items-center justify-end gap-3">
           <span className="hidden rounded-full bg-[#f3f3f3] px-3 py-1 text-xs font-medium text-grey lg:inline">Demo data</span>
           <button onClick={() => setOpen((o) => !o)} aria-label="Recent round-ups" aria-expanded={open}
