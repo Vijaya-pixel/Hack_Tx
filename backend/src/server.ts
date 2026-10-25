@@ -13,7 +13,7 @@ const { client, reason: snowflakeReason } = await connectFromEnv();
 let repo = client ? createSnowflakeRepo(client) : createLocalRepo();
 if (client) {
   // If the tables aren't set up yet, say so and serve the local seed instead of failing every request.
-  try { await repo.getCustomer('alex'); }
+  try { await repo.getCustomer('demo'); }
   catch (e) { console.error(`Snowflake customer lookup failed (${(e as Error).message}). Run "npm run snowflake:setup". Using the local seed.`); repo = createLocalRepo(); }
 }
 

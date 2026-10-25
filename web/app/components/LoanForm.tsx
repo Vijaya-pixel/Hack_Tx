@@ -53,7 +53,7 @@ export function LoanForm({ customer, active, onApply, onReset }: {
           <Field label="Original amount (optional)" suffix="$" value={original} onChange={setOriginal} min={LOAN_HINTS.balance[0]} max={LOAN_HINTS.balance[1]} required={false} />
           <div className="flex gap-2 sm:col-span-2">
             <button type="submit" className="skeu rounded-full px-6 py-2.5 text-sm font-semibold">Recalculate</button>
-            <button type="button" onClick={reset} className="rounded-full border border-line bg-panel px-5 py-2.5 text-sm font-medium">Back to Alex’s loan</button>
+            <button type="button" onClick={reset} className="rounded-full border border-line bg-panel px-5 py-2.5 text-sm font-medium">Back to Jordan’s loan</button>
           </div>
           <p className="copy text-xs text-grey sm:col-span-2">Your numbers stay in this browser tab. The plan, chart, payoff dates and answers all recompute from them.</p>
         </form>

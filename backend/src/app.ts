@@ -39,7 +39,7 @@ function parseExtra(raw: unknown, fallback: number): number {
   return n;
 }
 
-// Optional "try your own loan" values on the query string. Anything missing keeps Alex's value.
+// Optional "try your own loan" values on the query string. Anything missing keeps Jordan's value.
 export const LOAN_LIMITS = { balance: [1000, 200000], apr: [0, 30], months: [6, 120] } as const;
 interface LoanOverride { balance?: number; apr?: number; monthsRemaining?: number; originalAmount?: number }
 
@@ -76,8 +76,8 @@ export function createApp(deps: Deps) {
     return value;
   };
 
-  // Alex's real weekly average from the store, and the plan built from it.
-  // The customer, with any values the judge typed in replacing Alex's. `custom` says whether that happened.
+  // Jordan's real weekly average from the store, and the plan built from it.
+  // The customer, with any values the judge typed in replacing Jordan's. `custom` says whether that happened.
   async function customerFor(q: Request['query']): Promise<{ c: Customer; custom: boolean; percent: number | null }> {
     const stored = await customer();
     const o = loanOverride(q);

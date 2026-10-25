@@ -11,7 +11,7 @@ export interface Tx {
   roundupCents: number;
 }
 
-export const CUSTOMER_ID = 'alex';
+export const CUSTOMER_ID = 'demo';
 export const SEED_WEEKS = 12;
 const DAY = 86_400_000;
 

@@ -4,7 +4,7 @@ import { redact, snowflakeConfigFromEnv, cortexModel, DEFAULT_CORTEX_MODEL, type
 import { createLocalRepo, createSnowflakeRepo, seedSnowflake, SETUP_SQL, HARDSHIP_MESSAGE } from '../src/customers.ts';
 import { buildFacts, buildPrompt, explain, numbersIn, templateExplanation, unknownNumbers, LABELS, type ExplainInput } from '../src/explain.ts';
 import { biweekly, compare, monthlyPayment, payoff } from '../src/loan.ts';
-import { withPayment, ALEX_SEED } from '../src/customers.ts';
+import { withPayment, DEMO_SEED } from '../src/customers.ts';
 
 function fakeClient(handler: (sql: string, binds?: unknown[]) => unknown[] | Promise<unknown[]>) {
   const calls: { sql: string; binds?: unknown[] }[] = [];
@@ -36,34 +36,34 @@ describe('config', () => {
 });
 
 describe('customer repos', () => {
-  test('local repo gives Alex with a computed payment and stores requests as pending', async () => {
+  test('local repo gives Jordan with a computed payment and stores requests as pending', async () => {
     const repo = createLocalRepo();
-    const c = await repo.getCustomer('alex');
-    assert.equal(c.name, 'Alex Rivera');
+    const c = await repo.getCustomer('demo');
+    assert.equal(c.name, 'Jordan Parker');
     assert.ok(Math.abs(c.monthlyPayment - 656) < 1);
-    const r = await repo.saveHardship('alex', 'pause');
+    const r = await repo.saveHardship('demo', 'pause');
     assert.equal(r.status, 'PENDING');
     assert.equal(r.message, HARDSHIP_MESSAGE);
   });
   test('snowflake repo reads with bound parameters and inserts hardship requests', async () => {
     const { client, calls } = fakeClient((sql) => /FROM CUSTOMERS/.test(sql)
-      ? [{ CUSTOMER_ID: 'alex', NAME: 'Alex Rivera', VEHICLE: '2024 Toyota RAV4 Hybrid', ORIGINAL_AMOUNT: 34500, BALANCE: 28000, APR: 5.9, MONTHS_REMAINING: 48 }] : []);
+      ? [{ CUSTOMER_ID: 'demo', NAME: 'Jordan Parker', VEHICLE: '2024 Toyota RAV4 Hybrid', ORIGINAL_AMOUNT: 34500, BALANCE: 28000, APR: 5.9, MONTHS_REMAINING: 48 }] : []);
     const repo = createSnowflakeRepo(client);
-    const c = await repo.getCustomer('alex');
+    const c = await repo.getCustomer('demo');
     assert.equal(c.balance, 28000);
     assert.equal(c.originalAmount, 34500);
-    assert.deepEqual(calls[0].binds, ['alex']);
-    const r = await repo.saveHardship('alex', 'biweekly');
+    assert.deepEqual(calls[0].binds, ['demo']);
+    const r = await repo.saveHardship('demo', 'biweekly');
     assert.equal(r.storedIn, 'snowflake');
     assert.match(calls[1].sql, /INSERT INTO HARDSHIP_REQUESTS/);
-    assert.equal(calls[1].binds![1], 'alex');
+    assert.equal(calls[1].binds![1], 'demo');
     assert.equal(calls[1].binds![2], 'biweekly');
   });
   test('a missing customer is an error', async () => {
     const { client } = fakeClient(() => []);
     await assert.rejects(() => createSnowflakeRepo(client).getCustomer('nobody'), /No customer/);
   });
-  test('setup creates the three tables and seeds Alex', async () => {
+  test('setup creates the three tables and seeds Jordan', async () => {
     const { client, calls } = fakeClient(() => []);
     await seedSnowflake(client);
     const sql = calls.map((c) => c.sql).join('\n');
@@ -74,7 +74,7 @@ describe('customer repos', () => {
 });
 
 describe('explanations', () => {
-  const customer = withPayment(ALEX_SEED);
+  const customer = withPayment(DEMO_SEED);
   const pay = customer.monthlyPayment;
   const mk = (preset: ExplainInput['preset'] = 'worth', extra = 12): ExplainInput => ({
     customer, preset, extraPerWeek: extra, avgPerWeek: 11.42,

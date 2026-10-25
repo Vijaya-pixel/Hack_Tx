@@ -19,8 +19,8 @@ export interface HardshipResult { id: string; kind: HardshipKind; status: 'PENDI
 
 export const HARDSHIP_MESSAGE = 'Request sent. A TFS specialist will review it.';
 
-export const ALEX_SEED = {
-  id: 'alex', name: 'Alex Rivera', vehicle: '2024 Toyota RAV4 Hybrid', originalAmount: 34500, balance: 28000, apr: 5.9, monthsRemaining: 48,
+export const DEMO_SEED = {
+  id: 'demo', name: 'Jordan Parker', vehicle: '2024 Toyota RAV4 Hybrid', originalAmount: 34500, balance: 28000, apr: 5.9, monthsRemaining: 48,
 };
 
 export function withPayment(c: Omit<Customer, 'monthlyPayment'>): Customer {
@@ -37,7 +37,7 @@ export function createLocalRepo(): CustomerRepo {
   let n = 0;
   return {
     source: 'local',
-    async getCustomer() { return withPayment(ALEX_SEED); },
+    async getCustomer() { return withPayment(DEMO_SEED); },
     async saveHardship(_id, kind) {
       return { id: `local-${++n}`, kind, status: 'PENDING', message: HARDSHIP_MESSAGE, storedIn: 'local' };
     },
@@ -78,7 +78,7 @@ export const SETUP_SQL: string[] = [
 
 export async function seedSnowflake(client: SnowflakeClient): Promise<void> {
   for (const sql of SETUP_SQL) await client.query(sql);
-  const a = ALEX_SEED;
+  const a = DEMO_SEED;
   await client.query('DELETE FROM CUSTOMERS WHERE CUSTOMER_ID = ?', [a.id]);
   await client.query('DELETE FROM LOANS WHERE CUSTOMER_ID = ?', [a.id]);
   await client.query('INSERT INTO CUSTOMERS (CUSTOMER_ID, NAME) VALUES (?, ?)', [a.id, a.name]);
