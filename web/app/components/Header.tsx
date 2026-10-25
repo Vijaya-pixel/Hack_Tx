@@ -34,7 +34,6 @@ export function Header({ name, feed, path }: { name?: string; feed: Feed | null;
         </nav>
         <div className="relative col-start-3 flex items-center justify-end gap-3">
           <ThemeToggle />
-          <span className="hidden rounded-full bg-soft px-3 py-1 text-xs font-medium text-grey lg:inline">Demo data</span>
           <button onClick={() => setOpen((o) => !o)} aria-label="Recent round-ups" aria-expanded={open}
             className="relative grid h-11 w-11 place-items-center rounded-full border border-line bg-panel">
             <Bell size={20} strokeWidth={1.5} />
