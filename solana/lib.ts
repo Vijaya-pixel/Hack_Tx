@@ -1,4 +1,4 @@
-// Shared helpers for Four Corners on Solana devnet.
+// Shared helpers for writing fingerprints to Solana devnet.
 // Only short fingerprints (SHA-256 hashes) are ever written on-chain, never personal data.
 import {
   Connection, Keypair, PublicKey, Transaction, TransactionInstruction, clusterApiUrl,
@@ -49,10 +49,10 @@ export function loadWallets(): Wallet[] {
 }
 
 export interface Receipt {
-  type: 'pact' | 'stamp';
+  type: string; // what was recorded, e.g. 'advice'
   signature: string;
   hash: string;
-  payload: { members: string[]; [key: string]: Json };
+  payload: { members: string[]; [key: string]: Json }; // members = the public keys that signed
   at: string;
 }
 
@@ -67,7 +67,7 @@ export function saveReceipt(receipt: Receipt): void {
 
 interface BuildArgs { memo: string; keypairs: Keypair[]; blockhash: string; lastValidBlockHeight: number }
 
-// One memo instruction that lists ALL four friends as required signers.
+// One memo instruction that lists every keypair as a required signer.
 export function buildMemoTx({ memo, keypairs, blockhash, lastValidBlockHeight }: BuildArgs): Transaction {
   const ix = new TransactionInstruction({
     programId: MEMO_PROGRAM_ID,
@@ -76,7 +76,7 @@ export function buildMemoTx({ memo, keypairs, blockhash, lastValidBlockHeight }:
   });
   const tx = new Transaction({ feePayer: keypairs[0].publicKey, blockhash, lastValidBlockHeight });
   tx.add(ix);
-  tx.sign(...keypairs); // all four sign; first one also pays the tiny fee
+  tx.sign(...keypairs); // all of them sign; the first one also pays the tiny fee
   return tx;
 }
 

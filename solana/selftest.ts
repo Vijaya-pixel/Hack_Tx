@@ -1,4 +1,4 @@
-// Offline test: builds and checks a 4-signer memo transaction WITHOUT using the network.
+// Offline test: builds and checks a multi-signer memo transaction WITHOUT using the network.
 import { Keypair } from '@solana/web3.js';
 import { buildMemoTx, fingerprint, canonical, MEMO_PROGRAM_ID } from './lib.ts';
 
@@ -9,16 +9,16 @@ const check = (label: string, ok: boolean): void => {
 };
 
 const keypairs = [1, 2, 3, 4].map(() => Keypair.generate());
-const payload = { type: 'pact', city: 'Nashville', weekend: '2026-11-14',
+const payload = { type: 'advice', customer: 'demo-1', option: 'hybrid',
   members: keypairs.map((k) => k.publicKey.toBase58()).sort() };
 
 check('same data gives same fingerprint (key order does not matter)',
   fingerprint({ b: 2, a: 1 }) === fingerprint({ a: 1, b: 2 }));
 check('changing one field changes the fingerprint',
-  fingerprint(payload) !== fingerprint({ ...payload, city: 'Denver' }));
+  fingerprint(payload) !== fingerprint({ ...payload, option: 'buyout' }));
 check('canonical is stable', canonical({ z: [1, { y: 2, x: 1 }] }) === '{"z":[1,{"x":1,"y":2}]}');
 
-const memo = `FC1|pact|${fingerprint(payload)}`;
+const memo = `ADV1|advice|${fingerprint(payload)}`;
 const args = { memo, keypairs, blockhash: '11111111111111111111111111111111', lastValidBlockHeight: 1 };
 const tx = buildMemoTx(args);
 

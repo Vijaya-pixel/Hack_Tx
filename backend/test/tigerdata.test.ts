@@ -1,17 +1,8 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
 import type { Db } from '../src/db.ts';
-import { createPostgresStore } from '../src/pgstore.ts';
-import {
-  TABLES, HYPERTABLE_STEPS, CONTINUOUS_AGGREGATE_STEPS, SHOWCASE_QUERIES,
-  bucketFloor, enableTimescale, renderSchemaSql,
-} from '../src/tigerdata.ts';
-
-const here = path.dirname(fileURLToPath(import.meta.url));
+import { bucketFloor, enableHypertable } from '../src/tigerdata.ts';
 
 // A database that records every statement, and can be told to fail on chosen ones.
 function recordingDb(failWhen: (sql: string) => boolean = () => false): Db & { log: string[] } {
@@ -26,77 +17,55 @@ function recordingDb(failWhen: (sql: string) => boolean = () => false): Db & { l
   } as Db & { log: string[] };
 }
 
-describe('TigerData module', () => {
-  test('backend/tigerdata/schema.sql matches the code (run `npm run schema:export` if this fails)', () => {
-    const onDisk = fs.readFileSync(path.join(here, '..', 'tigerdata', 'schema.sql'), 'utf8');
-    assert.equal(onDisk, renderSchemaSql());
-  });
-
-  test('the tables create cleanly on a real Postgres engine, and twice in a row', async () => {
-    const db = new PGlite();
-    for (let i = 0; i < 2; i++) for (const sql of TABLES) await db.query(sql);
-    const { rows } = await db.query<{ table_name: string }>(
-      "SELECT table_name FROM information_schema.tables WHERE table_name LIKE 'fc\\_%' ORDER BY 1");
-    assert.deepEqual(rows.map((r) => r.table_name),
-      ['fc_availability', 'fc_feed', 'fc_groups', 'fc_members', 'fc_score_events', 'fc_stamps']);
-  });
-
-  test('bucketFloor uses time_bucket on TimescaleDB and date_trunc on plain Postgres', () => {
-    assert.equal(bucketFloor(true, 'day'), "time_bucket(INTERVAL '1 day', time)");
-    assert.equal(bucketFloor(true, 'hour'), "time_bucket(INTERVAL '1 hour', time)");
-    assert.equal(bucketFloor(false, 'day'), "date_trunc('day', time)");
-    assert.equal(bucketFloor(false, 'hour', 't.at'), "date_trunc('hour', t.at)");
-    assert.equal(bucketFloor(true, "day'; DROP TABLE x; --" as never), "time_bucket(INTERVAL '1 day', time)", 'unit is never trusted');
-  });
-
-  test('enableTimescale: everything succeeds', async () => {
+describe('TigerData helpers', () => {
+  test('enableHypertable runs the extension, then create_hypertable for the named table', async () => {
     const db = recordingDb();
-    assert.deepEqual(await enableTimescale(db), { timescale: true, continuousAggregate: true });
-    assert.equal(db.log.length, HYPERTABLE_STEPS.length + CONTINUOUS_AGGREGATE_STEPS.length);
+    assert.equal(await enableHypertable(db, { table: 'readings', timeColumn: 'ts' }), true);
+    assert.equal(db.log.length, 2);
     assert.match(db.log[0], /CREATE EXTENSION IF NOT EXISTS timescaledb/);
-    assert.match(db.log[1], /create_hypertable\('fc_score_events', 'time'/);
+    assert.match(db.log[1], /create_hypertable\('readings', 'ts', if_not_exists => TRUE/);
   });
 
-  test('enableTimescale: no TimescaleDB means plain Postgres, and it stops trying', async () => {
+  test('without TimescaleDB it returns false and stops after the first failure', async () => {
     const db = recordingDb((sql) => /CREATE EXTENSION/.test(sql));
-    assert.deepEqual(await enableTimescale(db), { timescale: false, continuousAggregate: false });
-    assert.equal(db.log.length, 1, 'does not keep issuing Timescale statements');
+    assert.equal(await enableHypertable(db, { table: 'readings', timeColumn: 'ts' }), false);
+    assert.equal(db.log.length, 1);
   });
 
-  test('enableTimescale: hypertable works but the continuous aggregate fails, so only the rollup is lost', async () => {
-    const db = recordingDb((sql) => /MATERIALIZED VIEW/.test(sql));
-    assert.deepEqual(await enableTimescale(db), { timescale: true, continuousAggregate: false });
+  test('a failing create_hypertable also returns false', async () => {
+    const db = recordingDb((sql) => /create_hypertable/.test(sql));
+    assert.equal(await enableHypertable(db, { table: 'readings', timeColumn: 'ts' }), false);
   });
 
-  test('the store switches its trend SQL to time_bucket exactly when TimescaleDB is on', async () => {
-    const withTs = recordingDb();
-    const a = createPostgresStore(withTs);
-    await a.init();
-    assert.equal(a.timescale, true);
-    assert.equal(a.continuousAggregate, true);
-    await a.scoreTrend('ABC123');
-    assert.match(withTs.log.at(-1) ?? '', /time_bucket\(INTERVAL '1 day', time\)/);
-
-    const withoutTs = recordingDb((sql) => /CREATE EXTENSION/.test(sql));
-    const b = createPostgresStore(withoutTs);
-    await b.init();
-    assert.equal(b.timescale, false);
-    await b.scoreTrend('ABC123', 'hour');
-    assert.match(withoutTs.log.at(-1) ?? '', /date_trunc\('hour', time\)/);
-    assert.doesNotMatch(withoutTs.log.at(-1) ?? '', /time_bucket/);
-  });
-
-  test('showcase queries: unique titles, each says why, and each (except the hypertable check) takes a group code', () => {
-    const titles = SHOWCASE_QUERIES.map((q) => q.title);
-    assert.equal(new Set(titles).size, titles.length);
-    for (const q of SHOWCASE_QUERIES) {
-      assert.ok(q.why.length > 10, `${q.title} explains itself`);
-      assert.ok(q.sql.trim().endsWith(';'), `${q.title} ends with a semicolon`);
-      if (!/hypertables/.test(q.sql)) assert.match(q.sql, /YOURCODE/, `${q.title} uses a placeholder`);
+  test('unsafe table or column names are rejected before any SQL is sent', async () => {
+    const db = recordingDb();
+    for (const spec of [
+      { table: "x'); DROP TABLE users; --", timeColumn: 'ts' },
+      { table: 'readings', timeColumn: 'ts, evil' },
+      { table: 'Readings', timeColumn: 'ts' },
+    ]) {
+      await assert.rejects(() => enableHypertable(db, spec), /safe SQL identifier/);
     }
-    const all = SHOWCASE_QUERIES.map((q) => q.sql).join('\n');
-    for (const feature of ['time_bucket(', 'first(survival, time)', 'last(survival, time)', 'time_bucket_gapfill(', 'locf(', 'fc_score_daily']) {
-      assert.ok(all.includes(feature), `showcases ${feature}`);
-    }
+    assert.equal(db.log.filter((s) => /create_hypertable/.test(s)).length, 0);
+  });
+
+  test('on a real Postgres engine (no TimescaleDB) it reports false and the table still works', async () => {
+    const pg = new PGlite();
+    await pg.query('CREATE TABLE readings (ts timestamptz NOT NULL, v real NOT NULL)');
+    const db: Db = { query: (text, params) => pg.query(text, params as unknown[]) as never };
+    assert.equal(await enableHypertable(db, { table: 'readings', timeColumn: 'ts' }), false);
+    await pg.query("INSERT INTO readings VALUES ('2026-10-24T09:10:00Z', 0.2), ('2026-10-24T09:50:00Z', 0.4)");
+    const sql = `SELECT ${bucketFloor(false, 'hour', 'ts')} AS b, avg(v)::float8 AS a FROM readings GROUP BY b`;
+    const { rows } = await pg.query<{ a: number }>(sql);
+    assert.equal(rows.length, 1);
+    assert.ok(Math.abs(rows[0].a - 0.3) < 1e-6);
+  });
+
+  test('bucketFloor picks time_bucket or date_trunc and never trusts the unit or column', () => {
+    assert.equal(bucketFloor(true, 'day', 'ts'), "time_bucket(INTERVAL '1 day', ts)");
+    assert.equal(bucketFloor(true, 'hour', 'r.ts'), "time_bucket(INTERVAL '1 hour', r.ts)");
+    assert.equal(bucketFloor(false, 'day', 'ts'), "date_trunc('day', ts)");
+    assert.equal(bucketFloor(true, "day'; DROP TABLE x; --" as never, 'ts'), "time_bucket(INTERVAL '1 day', ts)");
+    assert.throws(() => bucketFloor(true, 'day', 'ts; DROP TABLE x'), /safe SQL identifier/);
   });
 });

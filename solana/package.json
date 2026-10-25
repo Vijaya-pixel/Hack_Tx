@@ -1,15 +1,12 @@
 {
-  "name": "four-corners-solana",
+  "name": "solana",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Pact and Summit Stamp on Solana devnet (memo program, 4 co-signers)",
+  "description": "Solana devnet helpers: test wallets, airdrop, multi-signer memo transactions",
   "scripts": {
     "wallets": "tsx 01_make_wallets.ts",
     "airdrop": "tsx 02_airdrop.ts",
-    "pact": "tsx pact.ts",
-    "stamp": "tsx stamp.ts",
-    "verify": "tsx verify.ts",
     "selftest": "tsx selftest.ts",
     "typecheck": "tsc --noEmit"
   },
