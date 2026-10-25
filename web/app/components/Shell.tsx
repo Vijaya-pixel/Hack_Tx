@@ -37,7 +37,7 @@ export const useShared = (): Shared => {
   return v;
 };
 
-const MODE_NAMES: Record<string, string> = { tigerdata: 'TigerData', postgres: 'Postgres', memory: 'demo memory', cortex: 'Snowflake Cortex', template: 'built-in template', snowflake: 'Snowflake', local: 'local seed' };
+const MODE_NAMES: Record<string, string> = { tigerdata: 'TigerData', postgres: 'Postgres', memory: 'demo memory', cortex: 'Snowflake Cortex', gemini: 'Google Gemini', template: 'built-in template', snowflake: 'Snowflake', local: 'local seed' };
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();

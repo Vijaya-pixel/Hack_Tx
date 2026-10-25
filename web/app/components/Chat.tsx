@@ -30,7 +30,7 @@ export function Chat({ extra, name, loanQuery }: { extra: number; name?: string;
     setMsgs((m) => [...m, { id: userId, role: 'user', text: q.text }, { id: botId, role: 'assistant', text: '', loading: true }]);
     try {
       const r = await api<Explanation>(withQs(`/api/explain?preset=${q.id}&extraPerWeek=${extra}`, loanQuery));
-      setMsgs((m) => m.map((x) => (x.id === botId ? { id: botId, role: 'assistant', text: r.text, label: r.source === 'cortex' ? 'Snowflake Cortex' : 'Standard', why: r.rejected } : x)));
+      setMsgs((m) => m.map((x) => (x.id === botId ? { id: botId, role: 'assistant', text: r.text, label: r.source === 'gemini' ? 'Google Gemini' : r.source === 'cortex' ? 'Snowflake Cortex' : 'Standard', why: r.rejected } : x)));
     } catch (e) {
       setMsgs((m) => m.map((x) => (x.id === botId ? { id: botId, role: 'assistant', text: `Sorry, I couldn’t get that answer. ${(e as Error).message}` } : x)));
     } finally { setBusy(false); }

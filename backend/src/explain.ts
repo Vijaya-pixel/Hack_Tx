@@ -13,15 +13,22 @@ export interface Facts {
   question: string;
 }
 
+// Anything that can turn a prompt into text. Gemini and Snowflake Cortex both fit this shape.
+export interface Llm {
+  source: 'gemini' | 'cortex';
+  model: string;
+  complete(prompt: string): Promise<string>;
+}
+
 export interface Explanation {
   text: string;
-  source: 'cortex' | 'template';
+  source: 'gemini' | 'cortex' | 'template';
   label: string;
   preset: Preset;
   rejected?: string; // why a Cortex reply was not used
 }
 
-export const LABELS = { cortex: 'AI explanation · Snowflake Cortex', template: 'Standard explanation' } as const;
+export const LABELS = { gemini: 'AI explanation · Google Gemini', cortex: 'AI explanation · Snowflake Cortex', template: 'Standard explanation' } as const;
 
 export const usd = (x: number): string => {
   const whole = Math.abs(x) >= 100 || Number.isInteger(x);
@@ -94,23 +101,33 @@ export function unknownNumbers(reply: string, facts: Facts): number[] {
 
 const TIMEOUT_MS = 8000;
 
-export async function explain(input: ExplainInput, client: SnowflakeClient | null, model: string, timeoutMs = TIMEOUT_MS): Promise<Explanation> {
+// Snowflake Cortex as an Llm: SELECT SNOWFLAKE.CORTEX.COMPLETE(?, ?) with bound parameters.
+export function cortexLlm(client: SnowflakeClient, model: string): Llm {
+  return {
+    source: 'cortex',
+    model,
+    async complete(prompt) {
+      const rows = await client.query<{ REPLY: string }>('SELECT SNOWFLAKE.CORTEX.COMPLETE(?, ?) AS REPLY', [model, prompt]);
+      return String(rows[0]?.REPLY ?? '');
+    },
+  };
+}
+
+export async function explain(input: ExplainInput, llm: Llm | null, timeoutMs = TIMEOUT_MS): Promise<Explanation> {
   const facts = buildFacts(input);
   const template: Explanation = { text: templateExplanation(facts), source: 'template', label: LABELS.template, preset: input.preset };
-  if (!client) return { ...template, rejected: 'Snowflake not connected' };
+  if (!llm) return { ...template, rejected: 'No AI is connected' };
+  const name = llm.source === 'gemini' ? 'Gemini' : 'Cortex';
   try {
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeout = new Promise<never>((_, rej) => { timer = setTimeout(() => rej(new Error('Cortex timed out')), timeoutMs); });
-    const rows = await Promise.race([
-      client.query<{ REPLY: string }>('SELECT SNOWFLAKE.CORTEX.COMPLETE(?, ?) AS REPLY', [model, buildPrompt(facts)]),
-      timeout,
-    ]).finally(() => clearTimeout(timer));
-    const reply = String(rows[0]?.REPLY ?? '').trim();
-    if (!reply) return { ...template, rejected: 'Cortex returned an empty reply' };
+    const timeout = new Promise<never>((_, rej) => { timer = setTimeout(() => rej(new Error(`${name} timed out`)), timeoutMs); });
+    const raw = await Promise.race([llm.complete(buildPrompt(facts)), timeout]).finally(() => clearTimeout(timer));
+    const reply = raw.trim();
+    if (!reply) return { ...template, rejected: `${name} returned an empty reply` };
     const bad = unknownNumbers(reply, facts);
-    if (bad.length) return { ...template, rejected: `Cortex used numbers we did not send: ${bad.join(', ')}` };
-    return { text: reply, source: 'cortex', label: LABELS.cortex, preset: input.preset };
+    if (bad.length) return { ...template, rejected: `${name} used numbers we did not send: ${bad.join(', ')}` };
+    return { text: reply, source: llm.source, label: LABELS[llm.source], preset: input.preset };
   } catch (e) {
-    return { ...template, rejected: `Cortex failed: ${(e as Error).message.slice(0, 200)}` };
+    return { ...template, rejected: `${name} failed: ${(e as Error).message.slice(0, 200)}` };
   }
 }

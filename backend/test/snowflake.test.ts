@@ -2,7 +2,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { redact, snowflakeConfigFromEnv, cortexModel, DEFAULT_CORTEX_MODEL, type SnowflakeClient } from '../src/snowflake.ts';
 import { createLocalRepo, createSnowflakeRepo, seedSnowflake, SETUP_SQL, HARDSHIP_MESSAGE } from '../src/customers.ts';
-import { buildFacts, buildPrompt, explain, numbersIn, templateExplanation, unknownNumbers, LABELS, type ExplainInput } from '../src/explain.ts';
+import { buildFacts, buildPrompt, cortexLlm, explain, numbersIn, templateExplanation, unknownNumbers, LABELS, type ExplainInput } from '../src/explain.ts';
 import { biweekly, compare, monthlyPayment, payoff } from '../src/loan.ts';
 import { withPayment, DEMO_SEED } from '../src/customers.ts';
 
@@ -97,7 +97,7 @@ describe('explanations', () => {
     const input = mk();
     const f = buildFacts(input);
     const { client, calls } = fakeClient(() => [{ REPLY: `Nice! ${f.lines[3]}` }]);
-    const out = await explain(input, client, 'm1');
+    const out = await explain(input, cortexLlm(client, 'm1'));
     assert.equal(out.source, 'cortex');
     assert.equal(out.label, LABELS.cortex);
     assert.match(calls[0].sql, /SNOWFLAKE\.CORTEX\.COMPLETE\(\?, \?\)/);
@@ -107,19 +107,19 @@ describe('explanations', () => {
 
   test('a reply with an invented number is rejected and the template is shown', async () => {
     const { client } = fakeClient(() => [{ REPLY: 'You would save $9,999 in interest.' }]);
-    const out = await explain(mk(), client, 'm');
+    const out = await explain(mk(), cortexLlm(client, 'm'));
     assert.equal(out.source, 'template');
     assert.equal(out.label, LABELS.template);
     assert.match(out.rejected!, /9999/);
   });
 
   test('Cortex errors, empty replies and timeouts fall back to the template', async () => {
-    const boom = await explain(mk(), fakeClient(() => { throw new Error('region not supported'); }).client, 'm');
+    const boom = await explain(mk(), cortexLlm(fakeClient(() => { throw new Error('region not supported'); }).client, 'm'));
     assert.equal(boom.source, 'template');
     assert.match(boom.rejected!, /region/);
-    const empty = await explain(mk(), fakeClient(() => [{ REPLY: '  ' }]).client, 'm');
+    const empty = await explain(mk(), cortexLlm(fakeClient(() => [{ REPLY: '  ' }]).client, 'm'));
     assert.equal(empty.source, 'template');
-    const slow = await explain(mk(), fakeClient(() => new Promise(() => {})).client, 'm', 20);
+    const slow = await explain(mk(), cortexLlm(fakeClient(() => new Promise(() => {})).client, 'm'), 20);
     assert.equal(slow.source, 'template');
     assert.match(slow.rejected!, /timed out/);
   });
@@ -127,7 +127,7 @@ describe('explanations', () => {
   test('with no Snowflake client the template is used and every template number is in the facts', async () => {
     for (const preset of ['worth', 'double', 'tight'] as const) {
       const input = mk(preset);
-      const out = await explain(input, null, 'm');
+      const out = await explain(input, null);
       assert.equal(out.source, 'template');
       assert.deepEqual(unknownNumbers(out.text, buildFacts(input)), []);
       assert.equal(out.text, templateExplanation(buildFacts(input)));

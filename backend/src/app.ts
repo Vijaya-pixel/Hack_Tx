@@ -9,8 +9,8 @@ import { CUSTOMER_ID, weekStart } from './seed.ts';
 import { HARDSHIP_KINDS } from './customers.ts';
 import { withPayment } from './customers.ts';
 import type { Customer, CustomerRepo, HardshipKind } from './customers.ts';
-import { explain, PRESETS } from './explain.ts';
-import type { Preset } from './explain.ts';
+import { cortexLlm, explain, PRESETS } from './explain.ts';
+import type { Llm, Preset } from './explain.ts';
 import type { SnowflakeClient } from './snowflake.ts';
 
 export interface Deps {
@@ -21,6 +21,7 @@ export interface Deps {
   snowflake: SnowflakeClient | null;
   snowflakeReason?: string;
   cortexModel: string;
+  llm?: Llm | null; // e.g. Gemini; when absent, Snowflake Cortex is used if connected
   now?: () => Date;
 }
 
@@ -41,7 +42,9 @@ function parseExtra(raw: unknown, fallback: number): number {
 
 // Optional "try your own loan" values on the query string. Anything missing keeps Vijay's value.
 export const LOAN_LIMITS = { balance: [1000, 200000], apr: [0, 30], months: [6, 120] } as const;
-interface LoanOverride { balance?: number; apr?: number; monthsRemaining?: number; originalAmount?: number }
+// Models the vehicle dropdown offers. A name is only accepted if it is in this list.
+export const VEHICLES = ['2024 Toyota GR86', '2024 Toyota GR Supra', '2024 Toyota Camry', '2024 Toyota Corolla Cross', '2024 Toyota RAV4 Hybrid', '2024 Toyota Prius'];
+interface LoanOverride { balance?: number; apr?: number; monthsRemaining?: number; originalAmount?: number; vehicle?: string }
 
 function loanOverride(q: Request['query']): LoanOverride | null {
   const read = (key: string, label: string, min: number, max: number): number | undefined => {
@@ -56,9 +59,11 @@ function loanOverride(q: Request['query']): LoanOverride | null {
   const months = read('months', 'months', ...LOAN_LIMITS.months);
   const originalAmount = read('original', 'original', ...LOAN_LIMITS.balance);
   if (months !== undefined && !Number.isInteger(months)) throw new HttpError(400, 'months must be a whole number');
-  if (balance === undefined && apr === undefined && months === undefined && originalAmount === undefined) return null;
+  const vehicle = q.vehicle === undefined || q.vehicle === '' ? undefined : String(q.vehicle);
+  if (vehicle !== undefined && !VEHICLES.includes(vehicle)) throw new HttpError(400, 'vehicle is not one of the available models');
+  if (balance === undefined && apr === undefined && months === undefined && originalAmount === undefined && vehicle === undefined) return null;
   if (originalAmount !== undefined && balance !== undefined && originalAmount < balance) throw new HttpError(400, 'original must be at least the balance');
-  return { balance, apr, monthsRemaining: months, originalAmount };
+  return { balance, apr, monthsRemaining: months, originalAmount, vehicle };
 }
 
 const curve = (p: Payoff) => p.schedule.map((s) => ({ month: s.month, balance: roundMoney(s.balance) }));
@@ -69,6 +74,7 @@ export function createApp(deps: Deps) {
   // Answers change when the code or the numbers change, so never let a browser or proxy reuse an old one.
   app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   const now = deps.now ?? (() => new Date());
+  const llm: Llm | null = deps.llm ?? (deps.snowflake ? cortexLlm(deps.snowflake, deps.cortexModel) : null);
 
   let cached: { at: number; value: Customer } | null = null;
   const customer = async (): Promise<Customer> => {
@@ -84,10 +90,13 @@ export function createApp(deps: Deps) {
     const stored = await customer();
     const o = loanOverride(q);
     if (!o) return { c: stored, custom: false, percent: percentPaid(stored.originalAmount, stored.balance) };
+    const loanChanged = o.balance !== undefined || o.apr !== undefined || o.monthsRemaining !== undefined || o.originalAmount !== undefined;
     const balance = o.balance ?? stored.balance;
-    const c = withPayment({ ...stored, balance, apr: o.apr ?? stored.apr, monthsRemaining: o.monthsRemaining ?? stored.monthsRemaining, originalAmount: o.originalAmount ?? balance });
-    // Without an original amount we can't say how much is paid off.
-    return { c, custom: true, percent: o.originalAmount === undefined ? null : percentPaid(o.originalAmount, balance) };
+    const original = o.originalAmount ?? (o.balance === undefined ? stored.originalAmount : balance);
+    const c = withPayment({ ...stored, vehicle: o.vehicle ?? stored.vehicle, balance, apr: o.apr ?? stored.apr, monthsRemaining: o.monthsRemaining ?? stored.monthsRemaining, originalAmount: original });
+    // A new balance without an original amount can't say how much is paid off. Choosing only a vehicle changes nothing else.
+    const percent = o.balance !== undefined && o.originalAmount === undefined ? null : percentPaid(original, balance);
+    return { c, custom: loanChanged, percent };
   }
 
   async function planFor(rawExtra: unknown, q: Request['query'], multiplier = 1) {
@@ -105,10 +114,12 @@ export function createApp(deps: Deps) {
     res.json({
       database: { mode: deps.store.mode, ...(deps.storeReason ? { fallbackReason: deps.storeReason } : {}) },
       snowflake: { connected: deps.snowflake !== null, customerSource: deps.repo.source, ...(deps.snowflakeReason ? { reason: deps.snowflakeReason } : {}) },
-      ai: deps.snowflake ? { mode: 'cortex', model: deps.cortexModel } : { mode: 'template' },
+      ai: llm ? { mode: llm.source, model: llm.model } : { mode: 'template' },
       simulator: { running: deps.simulator.running() },
     });
   });
+
+  app.get('/api/vehicles', (_req, res) => { res.json({ vehicles: VEHICLES }); });
 
   app.get('/api/customer', async (req, res) => {
     const { c, custom, percent } = await customerFor(req.query);
@@ -171,7 +182,7 @@ export function createApp(deps: Deps) {
     const preset = String(req.query.preset ?? 'worth') as Preset;
     if (!PRESETS.includes(preset)) throw new HttpError(400, `preset must be one of ${PRESETS.join(', ')}`);
     const { c, avg, extra, plan, bi } = await planFor(req.query.extraPerWeek, req.query, preset === 'double' ? 2 : 1);
-    const out = await explain({ customer: c, preset, extraPerWeek: roundMoney(extra), avgPerWeek: roundMoney(avg), plan, biweekly: bi }, deps.snowflake, deps.cortexModel);
+    const out = await explain({ customer: c, preset, extraPerWeek: roundMoney(extra), avgPerWeek: roundMoney(avg), plan, biweekly: bi }, llm);
     res.json({ ...out, extraPerWeek: roundMoney(extra) });
   });
 

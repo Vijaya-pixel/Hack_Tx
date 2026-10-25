@@ -58,6 +58,17 @@ describe('API in fallback mode', () => {
     assert.equal((await api.get('/api/customer')).body.custom, false);
   });
 
+  test('the vehicle can be chosen from a fixed list, and nothing else changes', async () => {
+    const list = (await api.get('/api/vehicles')).body.vehicles as string[];
+    assert.ok(list.includes('2024 Toyota GR86') && list.length >= 3);
+    const c = (await api.get(`/api/customer?vehicle=${encodeURIComponent('2024 Toyota Camry')}`)).body;
+    assert.equal(c.vehicle, '2024 Toyota Camry');
+    assert.equal(c.custom, false);
+    assert.equal(c.percentPaid, 18.8);
+    assert.equal(c.balance, 28000);
+    assert.equal((await api.get('/api/customer?vehicle=Hovercraft')).status, 400);
+  });
+
   test('bad loan values are rejected with a clear message', async () => {
     for (const q of ['balance=5', 'balance=abc', 'apr=31', 'apr=-1', 'months=2', 'months=12.5', 'balance=9000&original=5000']) {
       const r = await api.get(`/api/plan?${q}`);
@@ -129,6 +140,24 @@ describe('API in fallback mode', () => {
     const r = await api.get('/api/nope');
     assert.equal(r.status, 404);
     assert.ok(r.body.error);
+  });
+});
+
+describe('API with Gemini for Ask', () => {
+  test('health reports Gemini and the explanation comes from it', async () => {
+    const llm = { source: 'gemini' as const, model: 'g-test', complete: async () => 'placeholder' };
+    const store = createMemoryStore(NOW);
+    const sim = createSimulator(store, 10);
+    const app = createApp({ store, simulator: sim, repo: createLocalRepo(), snowflake: null, cortexModel: 'm', llm, now: () => NOW });
+    const server: Server = await new Promise((res) => { const s = app.listen(0, () => res(s)); });
+    const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+    try {
+      const h: any = await (await fetch(`${base}/api/health`)).json();
+      assert.deepEqual(h.ai, { mode: 'gemini', model: 'g-test' });
+      const e: any = await (await fetch(`${base}/api/explain?extraPerWeek=10`)).json();
+      assert.equal(e.source, 'gemini'); // the stub reply has no numbers, so the number check accepts it
+      assert.equal(e.label, 'AI explanation · Google Gemini');
+    } finally { server.close(); }
   });
 });
 
