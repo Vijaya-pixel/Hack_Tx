@@ -30,11 +30,11 @@ export function PlanCards({ options, extra, onSelect, onBiweekly }: {
             {active && <span aria-hidden className="pointer-events-none absolute right-2 top-16 select-none text-[120px] font-black leading-none tracking-tighter text-toyota/[0.07]">{o.extra === 0 ? '$0' : `$${Math.round(o.extra!)}`}</span>}
             <div className="relative flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold tracking-tight">{o.title}</h3>
+                <h3 className="text-lg tracking-tight">{o.title}</h3>
                 <p className="text-xs text-grey">{o.sub}</p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-lg font-semibold">{k ? (k.interestSaved > 0 ? `${usd(k.interestSaved)} saved` : 'No extra') : '…'}</span>
+                <span className="whitespace-nowrap text-base font-medium">{k ? (k.interestSaved > 0 ? `${usd(k.interestSaved)} saved` : 'No extra') : '…'}</span>
                 <button onClick={act} aria-label={o.extra === null ? `Request ${o.title}` : `Use the ${o.title} plan`}
                   className="grid h-10 w-10 place-items-center rounded-full border border-[#e2e2e2] bg-white transition-colors hover:bg-ink hover:text-white">
                   <ArrowUpRight size={18} strokeWidth={1.5} />

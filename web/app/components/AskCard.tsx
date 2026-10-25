@@ -14,7 +14,7 @@ export function AskCard({ id, state, preset, onPick }: { id: string; state: Load
   const { data, error, loading, reload } = state;
   return (
     <Card id={id}>
-      <h2 className="text-xl font-semibold tracking-tight">Ask</h2>
+      <h2 className="text-xl tracking-tight">Ask</h2>
       <p className="text-sm text-grey">How can I help?</p>
       <ul className="mt-4 space-y-2">
         {ROWS.map((r) => {

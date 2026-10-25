@@ -19,7 +19,7 @@ export function LiveCard({ state, busy, onToggle }: { state: Loaded<Feed>; busy:
   return (
     <Card>
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold tracking-tight">Live</h2>
+        <h2 className="text-xl tracking-tight">Live</h2>
         <span className="flex items-center gap-2 text-xs text-grey">
           <span className={`h-2 w-2 rounded-full ${data?.running ? 'animate-pulse bg-accent' : 'bg-[#cfcfcf]'}`} />
           {data?.running ? 'Demo running' : 'Demo stopped'}

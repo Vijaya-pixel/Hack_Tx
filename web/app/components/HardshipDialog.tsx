@@ -52,7 +52,7 @@ export function HardshipDialog({ kind, plan, onKind, onClose }: { kind: Hardship
       {kind && (
         <div className="p-6">
           <div className="flex items-start justify-between gap-4">
-            <h2 id="hd-title" className="text-xl font-semibold tracking-tight">{copy[kind].title}</h2>
+            <h2 id="hd-title" className="text-xl tracking-tight">{copy[kind].title}</h2>
             <button onClick={onClose} aria-label="Close" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-soft"><X size={18} strokeWidth={1.5} /></button>
           </div>
           <div className="mt-4"><Segmented label="Request type" options={KINDS} value={kind} onChange={onKind} /></div>
