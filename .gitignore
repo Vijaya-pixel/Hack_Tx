@@ -6,3 +6,7 @@ data/
 # Solana test keys and receipts (never commit)
 solana/wallets.json
 solana/receipts.json
+
+# design build output and screenshots
+design/dist/
+design/shots/
