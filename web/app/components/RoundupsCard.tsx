@@ -25,7 +25,7 @@ export function RoundupsCard({ state }: { state: Loaded<Roundups> }) {
                   <BarChart data={data.weekly} margin={{ top: 8, right: 4, left: 4, bottom: 0 }} barCategoryGap="22%">
                     <XAxis dataKey="week" tickFormatter={shortDay} tick={{ fontSize: 11, fill: '#9a9a9a' }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={28} />
                     <Tooltip cursor={{ fill: 'rgba(0,0,0,0.04)' }} formatter={(v) => [usd2(Number(v)), 'Round-ups']} labelFormatter={(l) => `Week of ${shortDay(String(l))}`} contentStyle={{ borderRadius: 16, border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,.15)' }} />
-                    <Bar dataKey="amount" fill="#ffc83d" radius={[8, 8, 8, 8]} isAnimationActive={false} />
+                    <Bar dataKey="amount" fill="#eb0a1e" radius={[8, 8, 8, 8]} isAnimationActive={false} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

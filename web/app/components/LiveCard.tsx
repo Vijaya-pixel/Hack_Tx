@@ -29,7 +29,7 @@ export function LiveCard({ state, busy, onToggle }: { state: Loaded<Feed>; busy:
         <p className="mt-4 rounded-2xl bg-soft p-8 text-center text-sm text-grey">No purchases yet. Press play to start the demo feed.</p>
       ) : (
         <>
-          <div className="mt-4 rounded-3xl bg-accent p-5 text-ink">
+          <div className="mt-4 rounded-3xl bg-accent p-5 text-white">
             <p className="text-xs font-medium uppercase tracking-widest opacity-60">{pinned === null ? 'Latest purchase' : 'Earlier purchase'}</p>
             <p className="mt-6 text-2xl font-light leading-tight">{current.category} {usd2(current.amount)}</p>
             <p className="big mt-1 text-6xl font-light">+{usd2(current.roundup)}</p>
