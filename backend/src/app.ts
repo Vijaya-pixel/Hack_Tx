@@ -66,6 +66,8 @@ const curve = (p: Payoff) => p.schedule.map((s) => ({ month: s.month, balance: r
 export function createApp(deps: Deps) {
   const app = express();
   app.use(express.json());
+  // Answers change when the code or the numbers change, so never let a browser or proxy reuse an old one.
+  app.use('/api', (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   const now = deps.now ?? (() => new Date());
 
   let cached: { at: number; value: Customer } | null = null;
