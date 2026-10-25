@@ -3,7 +3,8 @@
 import type { Llm } from './explain.ts';
 
 type Env = Record<string, string | undefined>;
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+// The strongest Gemini model we know of. Set GEMINI_MODEL in .env to change it (for example gemini-2.5-flash for faster, cheaper answers).
+export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro';
 
 export interface GeminiOptions {
   apiKey: string;
@@ -18,7 +19,7 @@ interface GeminiResponse {
   error?: { message?: string };
 }
 
-export function createGeminiLlm({ apiKey, model = DEFAULT_GEMINI_MODEL, timeoutMs = 12_000, fetchFn = fetch }: GeminiOptions): Llm {
+export function createGeminiLlm({ apiKey, model = DEFAULT_GEMINI_MODEL, timeoutMs = 25_000, fetchFn = fetch }: GeminiOptions): Llm {
   if (!apiKey) throw new Error('GEMINI_API_KEY is empty');
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
   return {
@@ -31,7 +32,7 @@ export function createGeminiLlm({ apiKey, model = DEFAULT_GEMINI_MODEL, timeoutM
         const res = await fetchFn(url, {
           method: 'POST',
           headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 400 } }),
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 2048 } // room for the model's own thinking plus a short answer }),
           signal: controller.signal,
         });
         const body = (await res.json().catch(() => ({}))) as GeminiResponse;
