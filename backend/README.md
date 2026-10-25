@@ -5,7 +5,7 @@ TypeScript API (Express). Live app state and the trip-health time series live in
 
     npm install
     npm run typecheck     # strict TypeScript
-    npm test              # 35 tests; the API suite runs on the memory store AND a real Postgres engine (PGlite)
+    npm test              # 43 tests; the API suite runs on the memory store AND a real Postgres engine (PGlite)
 
 ## Run it
 
@@ -29,6 +29,18 @@ Copy `.env.example` to `.env` and fill in `DATABASE_URL`. Nothing else is requir
    and tries to create the daily continuous aggregate `fc_score_daily`.
 4. If the connection fails on certificates, set `PGSSL=insecure` (hackathon use only).
 
+## Show the judges the TigerData code
+| Open this | To see |
+|---|---|
+| `src/tigerdata.ts` | **All the TigerData-specific code in one file**: hypertable, continuous aggregate, `time_bucket`, hyperfunctions, and the showcase queries |
+| `tigerdata/schema.sql` | The same SQL as plain text, generated from that file (`npm run schema:export`). Paste it into the TigerData console |
+| `src/pgstore.ts` | How the app reads and writes its data on top of it |
+
+Live demo idea: run the "Showcase queries" at the bottom of `tigerdata/schema.sql` in the TigerData SQL editor
+(replace `YOURCODE` with a group code from `SELECT code FROM fc_groups;`). They show the hypertable, daily
+`time_bucket` trend, `first()` / `last()` opening and closing scores, `time_bucket_gapfill` with `locf`, and the
+continuous aggregate.
+
 ## What lives in TigerData
 | Table | What |
 |---|---|
@@ -43,7 +55,7 @@ on TimescaleDB (and `date_trunc` on plain Postgres). The first demo-crew join al
 ### What is and isn't verified
 - Verified: all table logic, queries, bucketing, persistence across restarts and the pg driver path,
   against a real Postgres engine (PGlite).
-- NOT verified here: the TimescaleDB-only steps (hypertable, continuous aggregate, `time_bucket`),
+- NOT verified here: the TimescaleDB-only steps (hypertable, continuous aggregate, `time_bucket`, `first`/`last`, gapfill),
   because TimescaleDB isn't available offline. They run inside try/catch: if any step fails the app
   logs nothing and falls back to plain Postgres. Check `GET /api/health` and your service console
   after first run; `fc_score_events` should appear under hypertables.

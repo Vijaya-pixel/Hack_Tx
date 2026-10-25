@@ -1,71 +1,17 @@
-// TigerData (Postgres + TimescaleDB) store.
-//
-//  - Live app state (groups, members, availability, feed, pact, stamps) lives in ordinary tables.
-//  - fc_score_events is a hypertable: every time the group's best plan changes, one row is written,
-//    so a group's "trip health" becomes a time series. Daily rollups use a continuous aggregate.
-//  - Works on plain Postgres too (no hypertable, date_trunc instead of time_bucket), which is how
-//    the tests run, because TimescaleDB itself isn't available in the test database.
+// The Store on top of TigerData (Postgres). Reads and writes the app's data.
+// The TigerData-specific parts (hypertable, continuous aggregate, time_bucket, showcase queries)
+// live in tigerdata.ts. Works on plain Postgres too, which is how the tests run.
 import type { ChainRecord, FeedItem, Group, Member } from './types.ts';
 import {
   newCode, newId, type Bucket, type ScoreEvent, type Store, type TrendPoint,
 } from './store.ts';
+import type { Db } from './db.ts';
+import { TABLES, bucketFloor, enableTimescale } from './tigerdata.ts';
 
-// The only database features we need: run a query, get rows back. Both `pg` and PGlite fit.
-export interface Db {
-  query<T extends object = Record<string, unknown>>(text: string, params?: unknown[]): Promise<{ rows: T[] }>;
-  close?(): Promise<void>;
-}
+export type { Db } from './db.ts';
 
 const ISO = `'YYYY-MM-DD"T"HH24:MI:SS"Z"'`;
 const iso = (col: string): string => `to_char(${col} AT TIME ZONE 'UTC', ${ISO})`;
-
-const TABLES = [
-  `CREATE TABLE IF NOT EXISTS fc_groups (
-     code text PRIMARY KEY, name text NOT NULL,
-     created_at timestamptz NOT NULL DEFAULT now(), pact jsonb)`,
-  `CREATE TABLE IF NOT EXISTS fc_members (
-     seq bigserial, id text PRIMARY KEY,
-     group_code text NOT NULL REFERENCES fc_groups(code) ON DELETE CASCADE,
-     token text NOT NULL, name text NOT NULL, describe text NOT NULL, city text NOT NULL,
-     lat double precision NOT NULL, lon double precision NOT NULL, vibe text NOT NULL,
-     traits jsonb NOT NULL, max_travel_hours double precision NOT NULL DEFAULT 8,
-     is_demo boolean NOT NULL DEFAULT false, joined_at timestamptz NOT NULL DEFAULT now())`,
-  'CREATE INDEX IF NOT EXISTS fc_members_group ON fc_members (group_code, seq)',
-  `CREATE TABLE IF NOT EXISTS fc_availability (
-     member_id text NOT NULL REFERENCES fc_members(id) ON DELETE CASCADE,
-     weekend date NOT NULL, PRIMARY KEY (member_id, weekend))`,
-  `CREATE TABLE IF NOT EXISTS fc_feed (
-     id bigserial PRIMARY KEY,
-     group_code text NOT NULL REFERENCES fc_groups(code) ON DELETE CASCADE,
-     at timestamptz NOT NULL DEFAULT now(), system boolean NOT NULL DEFAULT false,
-     from_member text, name text, text text NOT NULL)`,
-  'CREATE INDEX IF NOT EXISTS fc_feed_group ON fc_feed (group_code, id)',
-  `CREATE TABLE IF NOT EXISTS fc_stamps (
-     id bigserial PRIMARY KEY,
-     group_code text NOT NULL REFERENCES fc_groups(code) ON DELETE CASCADE,
-     record jsonb NOT NULL, at timestamptz NOT NULL DEFAULT now())`,
-  // The time series. No foreign key, because hypertables work best without them.
-  `CREATE TABLE IF NOT EXISTS fc_score_events (
-     time timestamptz NOT NULL, group_code text NOT NULL, city text, weekend date, nights int,
-     survival real NOT NULL, reason text NOT NULL, seeded boolean NOT NULL DEFAULT false)`,
-  'CREATE INDEX IF NOT EXISTS fc_score_events_group_time ON fc_score_events (group_code, time DESC)',
-];
-
-// Each statement runs on its own: continuous aggregates can't be created inside a transaction.
-const TIMESCALE_STEPS = [
-  'CREATE EXTENSION IF NOT EXISTS timescaledb',
-  "SELECT create_hypertable('fc_score_events', 'time', if_not_exists => TRUE, migrate_data => TRUE)",
-];
-const CAGG_STEPS = [
-  `CREATE MATERIALIZED VIEW IF NOT EXISTS fc_score_daily
-     WITH (timescaledb.continuous) AS
-     SELECT time_bucket(INTERVAL '1 day', time) AS bucket, group_code,
-            avg(survival) AS avg_survival, max(survival) AS best_survival, count(*) AS samples
-     FROM fc_score_events GROUP BY bucket, group_code WITH NO DATA`,
-  `SELECT add_continuous_aggregate_policy('fc_score_daily',
-     start_offset => INTERVAL '60 days', end_offset => INTERVAL '1 hour',
-     schedule_interval => INTERVAL '1 hour', if_not_exists => TRUE)`,
-];
 
 interface GroupRow { code: string; name: string; created_at: string; pact: ChainRecord | null }
 interface MemberRow {
@@ -84,9 +30,6 @@ export interface PgStore extends Store {
 export function createPostgresStore(db: Db): PgStore {
   let timescale = false;
   let cagg = false;
-  const attempt = async (sql: string): Promise<boolean> => {
-    try { await db.query(sql); return true; } catch { return false; }
-  };
 
   const store: PgStore = {
     kind: 'postgres',
@@ -95,16 +38,7 @@ export function createPostgresStore(db: Db): PgStore {
 
     async init() {
       for (const sql of TABLES) await db.query(sql);
-      timescale = true;
-      for (const sql of TIMESCALE_STEPS) {
-        if (!(await attempt(sql))) { timescale = false; break; }
-      }
-      if (timescale) {
-        cagg = true;
-        for (const sql of CAGG_STEPS) {
-          if (!(await attempt(sql))) { cagg = false; break; }
-        }
-      }
+      ({ timescale, continuousAggregate: cagg } = await enableTimescale(db));
     },
     async close() { await db.close?.(); },
 
@@ -205,8 +139,7 @@ export function createPostgresStore(db: Db): PgStore {
     },
 
     async scoreTrend(code, bucket: Bucket = 'day') {
-      const unit = bucket === 'hour' ? 'hour' : 'day'; // never taken from user text
-      const floor = timescale ? `time_bucket(INTERVAL '1 ${unit}', time)` : `date_trunc('${unit}', time)`;
+      const floor = bucketFloor(timescale, bucket === 'hour' ? 'hour' : 'day');
       const { rows } = await db.query<{ bucket: string; avg: number; best: number; samples: number; seeded: boolean }>(
         `SELECT ${iso('b')} AS bucket,
                 round(avg(survival)::numeric, 2)::float8 AS avg,
