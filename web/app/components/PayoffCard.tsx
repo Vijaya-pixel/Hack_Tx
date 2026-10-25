@@ -1,9 +1,10 @@
 'use client';
 import { useState } from 'react';
-import { CartesianGrid, Line, LineChart, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, CartesianGrid, ComposedChart, Line, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { Customer, Plan } from '@/lib/api';
 import { monthYear, usd } from '@/lib/format';
 import type { Loaded } from '@/lib/useApi';
+import { ChartTip } from './ChartTip';
 import { AnimatedNumber, Card, ErrorNote, Segmented, Skeleton } from './ui';
 
 const ARC = Math.PI * 80; // length of the semicircle gauge (radius 80)
@@ -13,7 +14,7 @@ export function Gauge({ pct }: { pct: number }) {
     <div className="relative mx-auto w-full max-w-[200px]">
       <svg viewBox="0 0 200 110" className="w-full" role="img" aria-label={`${pct}% of the loan paid off`}>
         <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="var(--color-line)" strokeWidth="16" strokeLinecap="round" />
-        <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="#eb0a1e" strokeWidth="16" strokeLinecap="round"
+        <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="var(--chart)" strokeWidth="16" strokeLinecap="round"
           strokeDasharray={ARC} strokeDashoffset={ARC * (1 - pct / 100)} style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
       </svg>
       <p className="big absolute inset-x-0 bottom-0 text-center text-4xl"><AnimatedNumber value={pct} format={(n) => `${n.toFixed(0)}%`} /></p>
@@ -50,26 +51,36 @@ export function PayoffCard({ id, customer, plan }: { id: string; customer: Loade
         <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_260px]">
           <div>
             <div className="mb-2 flex flex-wrap items-center gap-4 text-xs text-grey">
-              <span className="flex items-center gap-1.5"><span className="h-1 w-5 rounded-full bg-stdline" />Standard</span>
-              <span className="flex items-center gap-1.5"><span className="h-1 w-5 rounded-full bg-accent" />With round-ups</span>
+              <span className="flex items-center gap-1.5"><span className="h-0 w-5 border-t-2 border-dashed border-stdline" />Standard</span>
+              <span className="flex items-center gap-1.5"><span className="h-1 w-5 rounded-full bg-chart" />With round-ups</span>
               {p.kpis.monthsSaved > 0 && (
                 <span className="inline-flex items-center gap-2 rounded-full bg-fill px-3 py-1.5 font-medium text-onfill">
-                  <span className="h-2 w-2 rounded-full bg-accent" />
+                  <span className="h-2 w-2 rounded-full bg-chart" />
                   Paid off {p.kpis.monthsSaved} {p.kpis.monthsSaved === 1 ? 'month' : 'months'} earlier · {usd(p.kpis.interestSaved)} interest saved
                 </span>
               )}
             </div>
             <div className="h-64 w-full" role="img" aria-label="Loan balance over time, standard versus with round-ups">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ top: 6, right: 10, left: -8, bottom: 0 }}>
-                  <CartesianGrid stroke="var(--color-line)" vertical={false} />
+                <ComposedChart data={data} margin={{ top: 10, right: 12, left: -8, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" style={{ stopColor: 'var(--chart)', stopOpacity: 0.32 }} />
+                      <stop offset="1" style={{ stopColor: 'var(--chart)', stopOpacity: 0.02 }} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="var(--color-line)" strokeDasharray="3 6" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--color-grey)' }} axisLine={false} tickLine={false} tickFormatter={(m: number) => `M${m}`} interval="preserveStartEnd" minTickGap={30} />
                   <YAxis tickFormatter={(v: number) => `$${Math.round(v / 1000)}k`} tick={{ fontSize: 11, fill: 'var(--color-grey)' }} axisLine={false} tickLine={false} width={44} />
-                  <Tooltip formatter={(v) => usd(Number(v))} labelFormatter={(m) => `Month ${m}`} contentStyle={{ borderRadius: 16, border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,.25)', background: 'var(--color-panel)', color: 'var(--color-ink)' }} />
-                  <Line type="monotone" dataKey="standard" stroke="var(--color-stdline)" strokeWidth={2.5} dot={false} isAnimationActive={false} />
-                  <Line type="monotone" dataKey="withRoundUps" stroke="#eb0a1e" strokeWidth={3.5} dot={false} isAnimationActive={false} />
-                  {p.kpis.monthsSaved > 0 && <ReferenceDot x={p.withRoundUps.months} y={0} r={7} fill="#eb0a1e" stroke="var(--color-ink)" strokeWidth={2} ifOverflow="visible" />}
-                </LineChart>
+                  <Tooltip cursor={{ stroke: 'var(--color-grey)', strokeDasharray: '4 4' }} content={({ active, payload, label }) => active && payload?.length
+                    ? <ChartTip title={`Month ${label}`} rows={[
+                        { label: 'Standard', value: usd(Number(payload.find((x) => x.dataKey === 'standard')?.value ?? 0)), color: 'var(--color-stdline)' },
+                        { label: 'With round-ups', value: usd(Number(payload.find((x) => x.dataKey === 'withRoundUps')?.value ?? 0)), color: 'var(--chart)' },
+                      ]} /> : null} />
+                  <Line type="monotone" dataKey="standard" stroke="var(--color-stdline)" strokeWidth={2.5} strokeDasharray="7 6" dot={false} isAnimationActive={false} />
+                  <Area type="monotone" dataKey="withRoundUps" stroke="var(--chart)" strokeWidth={3.5} fill="url(#areaFill)" dot={false} isAnimationActive={false} />
+                  {p.kpis.monthsSaved > 0 && <ReferenceDot x={p.withRoundUps.months} y={0} r={7} fill="var(--chart)" stroke="var(--color-panel)" strokeWidth={3} ifOverflow="visible" />}
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
             <p className="copy text-xs text-grey">Round-ups go to principal, which is why they save interest.</p>

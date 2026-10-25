@@ -1,8 +1,9 @@
 'use client';
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
+import { Bar, BarChart, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { Roundups } from '@/lib/api';
 import { shortDay, usd, usd2 } from '@/lib/format';
 import type { Loaded } from '@/lib/useApi';
+import { ChartTip } from './ChartTip';
 import { AnimatedNumber, Card, ErrorNote, Skeleton } from './ui';
 
 export function RoundupsCard({ state }: { state: Loaded<Roundups> }) {
@@ -15,17 +16,28 @@ export function RoundupsCard({ state }: { state: Loaded<Roundups> }) {
       ) : (
         <>
           <p className="big mt-3 text-5xl md:text-6xl"><AnimatedNumber value={data.total} format={usd} /></p>
-          <p className="mt-2 text-sm text-grey">rounded up in {data.weeks} weeks · about {usd2(data.avgPerWeek)} a week</p>
+          <p className="mt-2 text-sm text-grey">rounded up in {data.weeks} weeks · the dashed line is your {usd2(data.avgPerWeek)} weekly average</p>
           {data.weekly.length === 0 ? (
             <p className="mt-5 rounded-2xl bg-soft p-6 text-center text-sm text-grey">No purchases yet. Start the demo feed to see round-ups.</p>
           ) : (
             <div className="mt-5 rounded-3xl bg-soft p-3">
-              <div className="h-48 w-full" role="img" aria-label="Weekly round-up totals">
+              <div className="h-56 w-full" role="img" aria-label="Weekly round-up totals">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.weekly} margin={{ top: 8, right: 4, left: 4, bottom: 0 }} barCategoryGap="22%">
+                  <BarChart data={data.weekly} margin={{ top: 14, right: 8, left: -14, bottom: 0 }} barCategoryGap="24%">
+                    <defs>
+                      <linearGradient id="barFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0" style={{ stopColor: 'var(--chart)', stopOpacity: 0.95 }} />
+                        <stop offset="1" style={{ stopColor: 'var(--chart)', stopOpacity: 0.35 }} />
+                      </linearGradient>
+                    </defs>
                     <XAxis dataKey="week" tickFormatter={shortDay} tick={{ fontSize: 11, fill: 'var(--color-grey)' }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={28} />
-                    <Tooltip cursor={{ fill: 'var(--color-soft)' }} formatter={(v) => [usd2(Number(v)), 'Round-ups']} labelFormatter={(l) => `Week of ${shortDay(String(l))}`} contentStyle={{ borderRadius: 16, border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,.25)', background: 'var(--color-panel)', color: 'var(--color-ink)' }} />
-                    <Bar dataKey="amount" fill="#eb0a1e" radius={[8, 8, 8, 8]} isAnimationActive={false} />
+                    <YAxis tickFormatter={(v: number) => `$${v}`} tick={{ fontSize: 11, fill: 'var(--color-grey)' }} axisLine={false} tickLine={false} width={44} tickCount={4} />
+                    <Tooltip cursor={{ fill: 'var(--color-soft)', radius: 12 }} content={({ active, payload, label }) => active && payload?.length
+                      ? <ChartTip title={`Week of ${shortDay(String(label))}`} rows={[{ label: 'Round-ups', value: usd2(Number(payload[0].value)), color: 'var(--chart)' }, { label: 'Purchases', value: String(payload[0].payload.count) }]} /> : null} />
+                    <ReferenceLine y={data.avgPerWeek} stroke="var(--color-grey)" strokeDasharray="5 5" />
+                    <Bar dataKey="amount" radius={[10, 10, 10, 10]} isAnimationActive={false}>
+                      {data.weekly.map((w, i) => <Cell key={w.week} fill={i === data.weekly.length - 1 ? 'var(--chart)' : 'url(#barFill)'} />)}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>

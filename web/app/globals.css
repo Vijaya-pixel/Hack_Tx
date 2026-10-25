@@ -3,13 +3,13 @@
 /* Light and dark values. Components use the token names (bg-card, text-ink, border-line ...). */
 :root {
   --page: #ffffff; --card: #f7f7f7; --panel: #ffffff; --soft: #ececec; --ink: #0b0b0b; --grey: #8a8a8a;
-  --line: #e4e4e4; --track: #d4d4d4; --fill: #0b0b0b; --onfill: #ffffff; --hover: #e9e9e9; --stdline: #b5b5b5;
+  --line: #e4e4e4; --track: #d4d4d4; --fill: #0b0b0b; --onfill: #ffffff; --hover: #e9e9e9; --stdline: #b5b5b5; --chart: #3b6ef5;
   --skeu-top: #46464a; --skeu-bottom: #0b0b0b; --skeu-edge: #000000; --skeu-shine: rgba(255,255,255,0.28);
   color-scheme: light;
 }
 .dark {
   --page: #0c0c0d; --card: #161617; --panel: #202023; --soft: #2a2a2e; --ink: #f2f2f2; --grey: #9b9ba1;
-  --line: #2d2d31; --track: #3b3b40; --fill: #f2f2f2; --onfill: #0b0b0b; --hover: #34343a; --stdline: #6c6c73;
+  --line: #2d2d31; --track: #3b3b40; --fill: #f2f2f2; --onfill: #0b0b0b; --hover: #34343a; --stdline: #6c6c73; --chart: #7aa2ff;
   --skeu-top: #ffffff; --skeu-bottom: #cfcfd2; --skeu-edge: #8d8d92; --skeu-shine: rgba(255,255,255,0.9);
   color-scheme: dark;
 }
@@ -27,6 +27,7 @@
   --color-onfill: var(--onfill);
   --color-hover: var(--hover);
   --color-stdline: var(--stdline);
+  --color-chart: var(--chart);
   --color-toyota: #eb0a1e;
   --color-accent: #eb0a1e;
   --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
