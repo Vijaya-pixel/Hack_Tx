@@ -1,0 +1,116 @@
+// Plain-language advice. The numbers are computed in loan.ts; the AI may only reword them.
+// Every number in a Cortex reply must already appear in the facts we sent, otherwise we use the template.
+import type { Comparison } from './loan.ts';
+import type { Customer } from './customers.ts';
+import type { SnowflakeClient } from './snowflake.ts';
+
+export type Preset = 'worth' | 'double' | 'tight';
+export const PRESETS: Preset[] = ['worth', 'double', 'tight'];
+
+export interface Facts {
+  preset: Preset;
+  lines: string[];   // the only numbers Cortex may use
+  question: string;
+}
+
+export interface Explanation {
+  text: string;
+  source: 'cortex' | 'template';
+  label: string;
+  preset: Preset;
+  rejected?: string; // why a Cortex reply was not used
+}
+
+export const LABELS = { cortex: 'AI explanation · Snowflake Cortex', template: 'Standard explanation' } as const;
+
+export const usd = (x: number): string => {
+  const whole = Math.abs(x) >= 100 || Number.isInteger(x);
+  return '$' + x.toLocaleString('en-US', { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 });
+};
+const monthName = (ym: string): string =>
+  new Date(`${ym}-01T00:00:00Z`).toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+export interface ExplainInput {
+  customer: Customer;
+  preset: Preset;
+  extraPerWeek: number;
+  avgPerWeek: number;
+  plan: Comparison;
+  biweekly: Comparison;
+}
+
+const QUESTIONS: Record<Preset, string> = {
+  worth: 'Is this worth it?',
+  double: 'What if I double it?',
+  tight: 'What if money is tight?',
+};
+
+export function buildFacts(i: ExplainInput): Facts {
+  const { customer: c, plan: p, biweekly: b } = i;
+  const lines = [
+    `The loan balance is ${usd(c.balance)} at ${c.apr}% APR with ${plural(c.monthsRemaining, 'month')} left.`,
+    `The monthly payment is ${usd(c.monthlyPayment)}.`,
+    `Round-ups average ${usd(i.avgPerWeek)} per week.`,
+    `With ${usd(i.extraPerWeek)} extra per week going to principal, the loan is paid off ${plural(p.monthsSaved, 'month')} sooner, in ${monthName(p.withRoundUps.payoffDate)} instead of ${monthName(p.standard.payoffDate)}.`,
+    `That saves ${usd(p.interestSaved)} in interest.`,
+  ];
+  if (i.preset === 'tight') {
+    lines.push(`Paying half the payment every two weeks would save ${plural(b.monthsSaved, 'month')} and ${usd(b.interestSaved)} in interest.`);
+    lines.push('A payment pause or a switch to bi-weekly can be requested; a Toyota Financial Services specialist reviews every request.');
+  }
+  return { preset: i.preset, lines, question: QUESTIONS[i.preset] };
+}
+
+export function templateExplanation(f: Facts): string {
+  const [, , avg, plan, saved] = f.lines;
+  switch (f.preset) {
+    case 'worth': return `${avg} ${plan} ${saved} Round-ups go to principal, which is why they save interest.`;
+    case 'double': return `Doubling it: ${plan} ${saved} Round-ups go to principal, which is why they save interest.`;
+    case 'tight': return `${f.lines[5]} ${f.lines[6]} You can also lower or pause round-ups any time without penalty. Your required payment does not change.`;
+  }
+}
+
+export function buildPrompt(f: Facts): string {
+  return [
+    'You are a friendly assistant for Toyota Financial Services customers. Answer the question in 2 to 3 short sentences of plain language.',
+    'Use ONLY the facts below. Copy every number exactly as written. Do not add, compute, round or estimate any other number. Do not promise approval of any request.',
+    `Question: ${f.question}`,
+    'Facts:',
+    ...f.lines.map((l) => `- ${l}`),
+  ].join('\n');
+}
+
+// All numbers in a text, as values: "$1,234.50" -> 1234.5, "5.9%" -> 5.9.
+export function numbersIn(text: string): number[] {
+  return (text.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map((s) => Number(s.replace(/,/g, '')));
+}
+
+// Returns the numbers in `reply` that are not in the facts (empty means the reply is safe to show).
+export function unknownNumbers(reply: string, facts: Facts): number[] {
+  const allowed = new Set(numbersIn(facts.lines.join(' ')));
+  return numbersIn(reply).filter((n) => !allowed.has(n));
+}
+
+const TIMEOUT_MS = 8000;
+
+export async function explain(input: ExplainInput, client: SnowflakeClient | null, model: string, timeoutMs = TIMEOUT_MS): Promise<Explanation> {
+  const facts = buildFacts(input);
+  const template: Explanation = { text: templateExplanation(facts), source: 'template', label: LABELS.template, preset: input.preset };
+  if (!client) return { ...template, rejected: 'Snowflake not connected' };
+  try {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, rej) => { timer = setTimeout(() => rej(new Error('Cortex timed out')), timeoutMs); });
+    const rows = await Promise.race([
+      client.query<{ REPLY: string }>('SELECT SNOWFLAKE.CORTEX.COMPLETE(?, ?) AS REPLY', [model, buildPrompt(facts)]),
+      timeout,
+    ]).finally(() => clearTimeout(timer));
+    const reply = String(rows[0]?.REPLY ?? '').trim();
+    if (!reply) return { ...template, rejected: 'Cortex returned an empty reply' };
+    const bad = unknownNumbers(reply, facts);
+    if (bad.length) return { ...template, rejected: `Cortex used numbers we did not send: ${bad.join(', ')}` };
+    return { text: reply, source: 'cortex', label: LABELS.cortex, preset: input.preset };
+  } catch (e) {
+    return { ...template, rejected: `Cortex failed: ${(e as Error).message.slice(0, 200)}` };
+  }
+}
