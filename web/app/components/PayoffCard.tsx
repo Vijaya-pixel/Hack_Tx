@@ -63,6 +63,12 @@ export function PayoffCard({ id, customer, plan }: { id: string; customer: Loade
             <div className="h-64 w-full" role="img" aria-label="Loan balance over time, standard versus with round-ups">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={data} margin={{ top: 10, right: 12, left: -8, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" style={{ stopColor: 'var(--chart)', stopOpacity: 0.32 }} />
+                      <stop offset="1" style={{ stopColor: 'var(--chart)', stopOpacity: 0.02 }} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid stroke="var(--color-line)" strokeDasharray="3 6" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--color-grey)' }} axisLine={false} tickLine={false} tickFormatter={(m: number) => `M${m}`} interval="preserveStartEnd" minTickGap={30} />
                   <YAxis tickFormatter={(v: number) => `$${Math.round(v / 1000)}k`} tick={{ fontSize: 11, fill: 'var(--color-grey)' }} axisLine={false} tickLine={false} width={44} />
@@ -71,8 +77,8 @@ export function PayoffCard({ id, customer, plan }: { id: string; customer: Loade
                         { label: 'Standard', value: usd(Number(payload.find((x) => x.dataKey === 'standard')?.value ?? 0)), color: 'var(--color-stdline)' },
                         { label: 'With round-ups', value: usd(Number(payload.find((x) => x.dataKey === 'withRoundUps')?.value ?? 0)), color: 'var(--chart)' },
                       ]} /> : null} />
-                  <Line type="stepAfter" dataKey="standard" stroke="var(--color-stdline)" strokeWidth={3} strokeDasharray="8 6" dot={false} isAnimationActive={false} />
-                  <Area type="stepAfter" dataKey="withRoundUps" stroke="var(--chart)" strokeWidth={4} fill="var(--chart)" fillOpacity={0.2} dot={false} isAnimationActive={false} />
+                  <Line type="monotone" dataKey="standard" stroke="var(--color-stdline)" strokeWidth={2.5} strokeDasharray="7 6" dot={false} isAnimationActive={false} />
+                  <Area type="monotone" dataKey="withRoundUps" stroke="var(--chart)" strokeWidth={3.5} fill="url(#areaFill)" dot={false} isAnimationActive={false} />
                   {p.kpis.monthsSaved > 0 && <ReferenceDot x={p.withRoundUps.months} y={0} r={7} fill="var(--chart)" stroke="var(--color-edge)" strokeWidth={3} ifOverflow="visible" />}
                 </ComposedChart>
               </ResponsiveContainer>
