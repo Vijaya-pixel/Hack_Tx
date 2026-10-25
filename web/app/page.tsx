@@ -71,7 +71,7 @@ export default function Dashboard() {
         </main>
       </div>
       <HardshipDialog kind={dialog} plan={base.data} onKind={setDialog} onClose={() => setDialog(null)} />
-      <footer className="mx-auto max-w-[1360px] px-4 pb-8 text-xs text-grey md:px-8">
+      <footer className="copy mx-auto max-w-[1360px] px-4 pb-8 text-xs text-grey md:px-8">
         <p>Concept for Toyota Financial Services. Not an official Toyota app. All data is synthetic.</p>
         {health.data && (
           <p className="mt-1">

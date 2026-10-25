@@ -7,7 +7,11 @@
   --color-grey: #8a8a8a;
   --color-accent: #eb0a1e;
   --color-toyota: #eb0a1e;
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-pixelify), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-pixelify), ui-sans-serif, sans-serif;
+  --font-copy: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-label: var(--font-silkscreen), ui-monospace, monospace;
+  --font-wordmark: var(--font-press-start), ui-monospace, monospace;
 }
 
 body { background: var(--color-page); color: var(--color-ink); font-family: var(--font-sans); }
@@ -21,7 +25,9 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .card:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 16px 40px rgba(0, 0, 0, 0.08); }
-.label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-grey); font-weight: 500; }
+.copy { font-family: var(--font-copy); }
+.wordmark { font-family: var(--font-wordmark); }
+.label { font-family: var(--font-label); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-grey); font-weight: 500; }
 .big { font-weight: 300; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
 
 /* Thermostat-style slider: tick marks on the track and a round thumb. */

@@ -56,7 +56,7 @@ export function HardshipDialog({ kind, plan, onKind, onClose }: { kind: Hardship
             <button onClick={onClose} aria-label="Close" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-soft"><X size={18} strokeWidth={1.5} /></button>
           </div>
           <div className="mt-4"><Segmented label="Request type" options={KINDS} value={kind} onChange={onKind} /></div>
-          <p className="mt-5 text-[15px] leading-relaxed text-ink/80">{copy[kind].text}</p>
+          <p className="copy mt-5 text-[14px] leading-relaxed text-ink/80">{copy[kind].text}</p>
           {sent[kind] ? (
             <p role="status" className="mt-5 rounded-2xl bg-ink/5 p-4 text-sm font-medium">{sent[kind]}</p>
           ) : (
@@ -65,7 +65,7 @@ export function HardshipDialog({ kind, plan, onKind, onClose }: { kind: Hardship
             </button>
           )}
           {error && <p role="alert" className="mt-3 text-sm text-toyota">{error}</p>}
-          <p className="mt-4 text-xs text-grey">This is a request, not an instant change.</p>
+          <p className="copy mt-4 text-xs text-grey">This is a request, not an instant change.</p>
         </div>
       )}
     </dialog>

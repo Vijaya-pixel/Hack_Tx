@@ -42,7 +42,7 @@ export function AskCard({ id, state, preset, onPick }: { id: string; state: Load
             </div>
           ) : (
             <>
-              <p className="text-[15px] leading-relaxed">{data.text}</p>
+              <p className="copy text-[14px] leading-relaxed">{data.text}</p>
               <p className="mt-3 inline-block rounded-full bg-soft px-3 py-1 text-xs font-medium text-grey" title={data.rejected}>
                 {data.source === 'cortex' ? 'Snowflake Cortex' : 'Standard'}
               </p>

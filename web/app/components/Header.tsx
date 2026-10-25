@@ -25,8 +25,8 @@ export function Header({ name, feed, onHelp }: { name?: string; feed: Feed | nul
           <button onClick={onHelp} className="text-[15px] text-grey transition-colors hover:text-ink">Help</button>
         </nav>
         <div className="col-start-1 text-left md:col-start-2 md:text-center">
-          <p className="text-lg font-medium uppercase tracking-[0.4em] md:text-xl">Round·Up</p>
-          <p className="-mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-toyota">Toyota Financial Services · Concept</p>
+          <p className="wordmark text-sm uppercase tracking-[0.2em] md:text-base">Round·Up</p>
+          <p className="label mt-1 !text-toyota">Toyota Financial Services · Concept</p>
         </div>
         <div className="relative col-start-3 flex items-center justify-end gap-3">
           <span className="hidden rounded-full bg-[#f3f3f3] px-3 py-1 text-xs font-medium text-grey lg:inline">Demo data</span>

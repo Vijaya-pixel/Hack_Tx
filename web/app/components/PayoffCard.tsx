@@ -72,7 +72,7 @@ export function PayoffCard({ id, customer, plan }: { id: string; customer: Loade
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <p className="text-xs text-grey">Round-ups go to principal, which is why they save interest.</p>
+            <p className="copy text-xs text-grey">Round-ups go to principal, which is why they save interest.</p>
           </div>
           <div className="space-y-4">
             <div className="rounded-3xl bg-white p-4">
