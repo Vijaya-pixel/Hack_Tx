@@ -32,7 +32,8 @@ export function createGeminiLlm({ apiKey, model = DEFAULT_GEMINI_MODEL, timeoutM
         const res = await fetchFn(url, {
           method: 'POST',
           headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 2048 } // room for the model's own thinking plus a short answer }),
+          // maxOutputTokens leaves room for the model's own thinking plus a short answer.
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 2048 } }),
           signal: controller.signal,
         });
         const body = (await res.json().catch(() => ({}))) as GeminiResponse;
