@@ -100,9 +100,18 @@ describe('explanations', () => {
     const out = await explain(input, cortexLlm(client, 'm1'));
     assert.equal(out.source, 'cortex');
     assert.equal(out.label, LABELS.cortex);
-    assert.match(calls[0].sql, /SNOWFLAKE\.CORTEX\.COMPLETE\(\?, \?\)/);
+    assert.match(calls[0].sql, /AI_COMPLETE\(\?, \?\)/);
     assert.equal(calls[0].binds![0], 'm1');
     assert.match(String(calls[0].binds![1]), /Copy every number exactly/);
+  });
+
+  test('falls back to the older Cortex function only when AI_COMPLETE is not recognised', async () => {
+    const seen: string[] = [];
+    const { client } = fakeClient((sql) => { seen.push(sql); if (/AI_COMPLETE/.test(sql)) throw new Error("Unknown function AI_COMPLETE"); return [{ REPLY: 'ok 9' }]; });
+    assert.equal(await cortexLlm(client, 'm').complete('p'), 'ok 9');
+    assert.match(seen[1], /SNOWFLAKE\.CORTEX\.COMPLETE/);
+    const { client: blocked } = fakeClient(() => { throw new Error('model not available in your region'); });
+    await assert.rejects(() => cortexLlm(blocked, 'm').complete('p'), /region/);
   });
 
   test('a reply with an invented number is rejected and the template is shown', async () => {

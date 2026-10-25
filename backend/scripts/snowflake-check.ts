@@ -21,13 +21,32 @@ await step('tables (CUSTOMERS, LOANS, HARDSHIP_REQUESTS)', async () => {
   await client.query('SELECT COUNT(*) FROM HARDSHIP_REQUESTS');
   return `${rows[0].N} customer row(s)`;
 });
-const err = await step(`Cortex (${model})`, async () => {
-  const rows = await client.query<{ R: string }>('SELECT SNOWFLAKE.CORTEX.COMPLETE(?, ?) AS R', [model, 'Reply with the single word: ok']);
-  return String(rows[0].R).trim().slice(0, 40);
-});
-if (err && /region|unavailable|not available|unknown model|cross/i.test(err.message)) {
-  console.log(`\nModel "${model}" may not be offered in your account's region. Either set SNOWFLAKE_CORTEX_MODEL to a model your region has, or enable cross-region inference (as ACCOUNTADMIN):`);
-  console.log("  ALTER ACCOUNT SET CORTEX_ENABLED_CROSS_REGION = 'ANY_REGION';");
+// Cortex: new accounts use AI_COMPLETE. Try the configured model first, then a few common ones, and report which work.
+const candidates = [...new Set([model, 'llama3.1-70b', 'mistral-large2', 'llama3.1-8b', 'claude-3-5-sonnet', 'snowflake-arctic'])];
+let working: string | null = null;
+let lastError: Error | null = null;
+for (const m of candidates) {
+  try {
+    const rows = await client.query<{ R: string }>('SELECT AI_COMPLETE(?, ?) AS R', [m, 'Reply with the single word: ok']);
+    console.log(`${mark(true)} Cortex AI_COMPLETE (${m}): ${String(rows[0].R).trim().slice(0, 40)}`);
+    working = m;
+    break;
+  } catch (e) {
+    lastError = e as Error;
+    console.log(`${mark(false)} Cortex AI_COMPLETE (${m}): ${redact((e as Error).message).slice(0, 140)}`);
+  }
+}
+if (working) {
+  if (working !== model) console.log(`\nSet SNOWFLAKE_CORTEX_MODEL=${working} in backend/.env, then restart the API.`);
+} else {
+  failed = true;
+  if (lastError && /trial/i.test(lastError.message)) {
+    console.log('\nSnowflake does not allow its AI functions (Cortex) on trial accounts, whatever the model. Everything else works.');
+    console.log('Options: upgrade the Snowflake account, or let Gemini answer Ask (set GEMINI_API_KEY; it is used automatically when Cortex fails).');
+  } else if (lastError && /region|unavailable|not available|unknown model|cross/i.test(lastError.message)) {
+    console.log("\nNo model worked. Models can depend on your account's region. As ACCOUNTADMIN you can allow cross-region use:");
+    console.log("  ALTER ACCOUNT SET CORTEX_ENABLED_CROSS_REGION = 'ANY_REGION';");
+  }
 }
 await client.close();
 process.exit(failed ? 1 : 0);

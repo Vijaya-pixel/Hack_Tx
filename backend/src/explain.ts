@@ -101,14 +101,22 @@ export function unknownNumbers(reply: string, facts: Facts): number[] {
 
 const TIMEOUT_MS = 8000;
 
-// Snowflake Cortex as an Llm: SELECT SNOWFLAKE.CORTEX.COMPLETE(?, ?) with bound parameters.
+// Snowflake Cortex as an Llm. New accounts can only use the AI Functions (AI_COMPLETE); the older
+// SNOWFLAKE.CORTEX.COMPLETE is tried only if AI_COMPLETE is not recognised. Both use bound parameters.
 export function cortexLlm(client: SnowflakeClient, model: string): Llm {
+  const run = async (fn: string, prompt: string) => {
+    const rows = await client.query<{ REPLY: string }>(`SELECT ${fn}(?, ?) AS REPLY`, [model, prompt]);
+    return String(rows[0]?.REPLY ?? '');
+  };
   return {
     source: 'cortex',
     model,
     async complete(prompt) {
-      const rows = await client.query<{ REPLY: string }>('SELECT SNOWFLAKE.CORTEX.COMPLETE(?, ?) AS REPLY', [model, prompt]);
-      return String(rows[0]?.REPLY ?? '');
+      try { return await run('AI_COMPLETE', prompt); }
+      catch (e) {
+        if (!/unknown function|invalid identifier|not recognized|does not exist/i.test((e as Error).message)) throw e;
+        return run('SNOWFLAKE.CORTEX.COMPLETE', prompt);
+      }
     },
   };
 }
