@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-toyota: #eb0a1e;
+  --color-toyota-dark: #b30717;
+  --color-ink: #1c1c1e;
+  --color-muted: #6b6b70;
+  --color-line: #e7e5e4;
+  --color-canvas: #faf9f7;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+body { background: var(--color-canvas); color: var(--color-ink); font-family: var(--font-sans); }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+:focus-visible { outline: 2px solid var(--color-toyota); outline-offset: 2px; }
