@@ -129,8 +129,12 @@ export async function createDbStore(db: Db, now: Date = new Date()): Promise<Sto
 }
 
 // Falls back to memory when there is no database or setup fails. `reason` says why, for /api/health.
-export async function createStoreFromDb(db: Db | null): Promise<{ store: Store; reason?: string }> {
+export async function createStoreFromDb(db: Db | null, timeoutMs = 20_000): Promise<{ store: Store; reason?: string }> {
   if (!db) return { store: createMemoryStore(), reason: 'DATABASE_URL not set' };
-  try { return { store: await createDbStore(db) }; }
+  try {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, rej) => { timer = setTimeout(() => rej(new Error('timed out')), timeoutMs); });
+    return { store: await Promise.race([createDbStore(db), timeout]).finally(() => clearTimeout(timer)) };
+  }
   catch (e) { return { store: createMemoryStore(), reason: `database unavailable: ${(e as Error).message}` }; }
 }

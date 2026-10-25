@@ -80,6 +80,8 @@ describe('database store (plain Postgres engine)', () => {
     const r = await createStoreFromDb(broken);
     assert.equal(r.store.mode, 'memory');
     assert.match(r.reason!, /boom/);
+    const hung: Db = { query: () => new Promise(() => {}) };
+    assert.match((await createStoreFromDb(hung, 30)).reason!, /timed out/);
   });
 });
 

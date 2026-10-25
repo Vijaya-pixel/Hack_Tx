@@ -14,6 +14,7 @@ export async function createDbFromEnv(env: Env = process.env): Promise<Db | null
   const pg = (await import('pg')).default;
   const pool = new pg.Pool({
     connectionString: env.DATABASE_URL,
+    connectionTimeoutMillis: 8000, // an unreachable host fails fast instead of hanging the app
     ...(env.PGSSL === 'insecure' ? { ssl: { rejectUnauthorized: false } } : {}),
   });
   // Hosted databases drop idle connections now and then. Without this, that error would crash the app.
