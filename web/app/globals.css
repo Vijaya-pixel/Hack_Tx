@@ -85,7 +85,7 @@ h1, h2, h3 { font-family: var(--font-sans); font-weight: 600; letter-spacing: -0
 /* Page transition: each page eases in (fade and a short rise). */
 .page-enter { animation: page-in 0.42s cubic-bezier(0.22, 0.8, 0.3, 1) both; }
 @keyframes page-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
-html { scroll-behavior: smooth; }
+
 
 .skeu { background: var(--toyota, #eb0a1e); color: #fff; border: 0; border-radius: 999px; box-shadow: 0 4px 0 #7d0a17; transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease; }
 .skeu:hover:not(:disabled) { filter: brightness(1.08); }
@@ -172,3 +172,12 @@ input[type='range'].tick::-moz-range-thumb { width: 20px; height: 20px; border-r
 .btn-neutral { background: var(--fill); color: var(--onfill); border-radius: 999px; box-shadow: 0 4px 0 var(--line); transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease; }
 .btn-neutral:hover:not(:disabled) { filter: brightness(1.12); }
 .btn-neutral:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--line); }
+
+/* Route transitions (see template.tsx): the old page leaves quickly, the new one arrives a beat later. */
+::view-transition-old(.page-out) { animation: vt-out 0.2s cubic-bezier(0.4, 0, 1, 1) both; }
+::view-transition-new(.page-in) { animation: vt-in 0.45s cubic-bezier(0.22, 0.8, 0.3, 1) 0.08s both; }
+@keyframes vt-out { to { opacity: 0; transform: translateY(-10px) scale(0.99); } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(.page-out), ::view-transition-new(.page-in) { animation: none; }
+}

@@ -1,4 +1,7 @@
-// Re-mounts on every navigation, so each page gets the ease-in animation (.page-enter in globals.css).
+import { ViewTransition } from 'react';
+
+// Each route change crossfades: the old page fades out and lifts slightly, the new one fades in and rises into place.
+// The header lives in the layout, outside this wrapper, so it stays put. The classes are styled in globals.css.
 export default function Template({ children }: { children: React.ReactNode }) {
-  return <div className="page-enter">{children}</div>;
+  return <ViewTransition enter="page-in" exit="page-out" default="none">{children}</ViewTransition>;
 }
