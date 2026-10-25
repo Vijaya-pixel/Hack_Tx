@@ -155,3 +155,8 @@ input[type='range'].tick::-moz-range-thumb { width: 20px; height: 20px; border-r
   .wheel-frame, .car-body { animation: none; }
   .wheel-frame:not(.wf0) { opacity: 0; }
 }
+
+/* Neutral action button: solid ink (or cream at night) pill with a soft bottom edge. Used where red would shout. */
+.btn-neutral { background: var(--fill); color: var(--onfill); border-radius: 999px; box-shadow: 0 4px 0 var(--line); transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease; }
+.btn-neutral:hover:not(:disabled) { filter: brightness(1.12); }
+.btn-neutral:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--line); }

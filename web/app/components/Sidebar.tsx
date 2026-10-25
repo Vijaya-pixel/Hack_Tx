@@ -62,13 +62,13 @@ export function Sidebar({ plan, extra, onExtra, enabled, onEnabled }: {
         </ul>
       </section>
 
-      <Link href="/help" className="pop flex items-center gap-4 rounded-3xl bg-toyota p-5 text-white">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-panel text-toyota"><ShieldCheck size={24} strokeWidth={1.5} /></span>
+      <Link href="/help" className="pop flex items-center gap-4 rounded-3xl border border-line bg-panel p-5">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-toyota/15 text-toyota"><ShieldCheck size={24} strokeWidth={1.75} /></span>
         <div className="min-w-0 flex-1">
           <h2 className="text-lg leading-tight">Money is tight?</h2>
-          <p className="text-xs text-white/80">We have lighter options.</p>
+          <p className="text-xs text-grey">We have lighter options.</p>
         </div>
-        <ChevronRight size={20} strokeWidth={1.5} />
+        <ChevronRight size={20} strokeWidth={1.5} className="text-grey" />
       </Link>
     </aside>
   );

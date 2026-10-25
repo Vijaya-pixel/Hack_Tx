@@ -38,7 +38,7 @@ export function HelpPanel({ plan }: { plan: Plan | null }) {
             {sent[o.kind] ? (
               <p role="status" className="rounded-2xl bg-soft p-4 text-sm font-medium">{sent[o.kind]}</p>
             ) : (
-              <button onClick={() => send(o.kind)} disabled={busy !== null} className="skeu w-full rounded-full px-5 py-3 text-sm font-semibold">
+              <button onClick={() => send(o.kind)} disabled={busy !== null} className="btn-neutral w-full px-5 py-3 text-sm font-semibold">
                 {busy === o.kind ? 'Sending…' : o.button}
               </button>
             )}
