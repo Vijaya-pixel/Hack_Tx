@@ -5,16 +5,21 @@
   --page: #f6f1e7; --card: #fffdf7; --panel: #ffffff; --soft: #efe8d8; --ink: #14141a; --grey: #6d6a63;
   --line: #cfc6b2; --edge: #14141a; --track: #d9d0bb; --fill: #14141a; --onfill: #ffffff; --hover: #e8dfca;
   --stdline: #9a948a; --chart: #2f6bff; --grid: rgba(20, 20, 26, 0.05);
-  --sky1: #7fd0ff; --sky2: #98d9ff; --sky3: #b3e3ff; --sky4: #cdecff; --sky5: #e4f5ff; --sun: #ffd84a; --road: #3a3a44; --star: transparent;
+  --sky1: #3b7bcb; --sky2: #4a8fd6; --sky3: #5fb3e0; --sky4: #7fd0ea; --sky5: #aee9f2; --sun: #ffd84a; --sun-edge: #a8691f; --road: #3a3a44; --star: transparent;
+  --cloud1: #f2fcff; --cloud2: #b9e6f2; --mtn-far: #5aa8b8; --mtn-far-hi: #8ccbd2; --mtn-far-sh: #4a8fa0; --mtn-near: #2f5f6b; --mtn-near-hi: #5f9a7a; --mtn-near-sh: #24505a;
   color-scheme: light;
 }
 .dark {
   --page: #0e0f1a; --card: #171a2c; --panel: #20233a; --soft: #2a2e4a; --ink: #f4f1ea; --grey: #9a9bb5;
   --line: #3a3f66; --edge: #e9e4d6; --track: #3a3f66; --fill: #f4f1ea; --onfill: #14141a; --hover: #343960;
   --stdline: #7c80a6; --chart: #5aa0ff; --grid: rgba(255, 255, 255, 0.045);
-  --sky1: #070816; --sky2: #0d1030; --sky3: #151a45; --sky4: #1e2560; --sky5: #2a3280; --sun: #f4f1ea; --road: #14141c; --star: #ffffff;
+  /* Night scene: starts at a deep blue (not black), with a moon, stars, dim clouds and dark mountains. */
+  --sky1: #14307a; --sky2: #1a3f90; --sky3: #234fa3; --sky4: #2f63b6; --sky5: #4580c8; --sun: #f4f1ea; --sun-edge: #cfc7b4; --road: #14141c; --star: #ffffff;
+  --cloud1: #5873c4; --cloud2: #3f58a6; --mtn-far: #1b3a73; --mtn-far-hi: #2f5a9a; --mtn-far-sh: #142d5c; --mtn-near: #0c2247; --mtn-near-hi: #204a80; --mtn-near-sh: #081a38;
   color-scheme: dark;
 }
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
   --color-page: var(--page);
@@ -40,6 +45,7 @@
   --font-press: var(--font-press-start), ui-monospace, monospace;
 }
 
+html, body { overflow-x: hidden; }
 body {
   background-color: var(--page);
   background-image: linear-gradient(var(--grid) 2px, transparent 2px), linear-gradient(90deg, var(--grid) 2px, transparent 2px);
@@ -63,22 +69,20 @@ h1, h2, h3 { font-family: var(--font-sans); font-weight: 600; letter-spacing: -0
 .label { font-family: var(--font-label); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--grey); font-weight: 400; }
 .big { font-family: var(--font-sans); font-weight: 500; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
 
-/* Chunky card: thick edge and a hard offset shadow. It "presses in" a little on hover. */
-.card {
-  background: var(--card); border: 3px solid var(--edge); border-radius: 0;
-  box-shadow: 6px 6px 0 var(--edge);
-  transition: transform 0.12s steps(2), box-shadow 0.12s steps(2);
+/* Pixel-button look for cards and buttons: notched corners, a solid edge, and a thicker bottom edge. */
+.card, .skeu, .pix {
+  clip-path: polygon(0 6px, 3px 6px, 3px 3px, 6px 3px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px,
+    100% calc(100% - 6px), calc(100% - 3px) calc(100% - 6px), calc(100% - 3px) calc(100% - 3px), calc(100% - 6px) calc(100% - 3px), calc(100% - 6px) 100%,
+    6px 100%, 6px calc(100% - 3px), 3px calc(100% - 3px), 3px calc(100% - 6px), 0 calc(100% - 6px));
 }
-.card:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--edge); }
+.card { background: var(--card); border: 3px solid var(--edge); border-bottom-width: 7px; border-radius: 0; transition: transform 0.12s steps(2); }
+.card:hover { transform: translateY(-2px); }
+.pix { background: var(--panel); border: 3px solid var(--edge); border-bottom-width: 6px; }
 
-/* Pixel button: black block with a red hard shadow; it slams down when pressed. */
-.skeu {
-  background: var(--fill); color: var(--onfill); border: 3px solid var(--edge);
-  box-shadow: 4px 4px 0 var(--toyota, #eb0a1e);
-  transition: transform 0.08s steps(2), box-shadow 0.08s steps(2);
-}
-.skeu:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--toyota, #eb0a1e); }
-.skeu:active:not(:disabled) { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--toyota, #eb0a1e); }
+/* Primary button: Toyota-red block with a dark-red edge. It sinks when pressed. */
+.skeu { background: var(--toyota, #eb0a1e); color: #fff; border: 3px solid #7d0a17; border-bottom-width: 6px; transition: transform 0.08s steps(2); }
+.skeu:hover:not(:disabled) { filter: brightness(1.08); }
+.skeu:active:not(:disabled) { transform: translateY(3px); border-bottom-width: 3px; }
 
 /* Square tick-mark slider. */
 input[type='range'].tick { -webkit-appearance: none; appearance: none; width: 100%; height: 36px; background: transparent; }
@@ -106,10 +110,11 @@ input[type='range'].tick::-moz-range-thumb { width: 18px; height: 22px; border-r
   animation: road 0.5s steps(4) infinite;
 }
 @keyframes road { to { background-position: -72px 50%, 0 0; } }
-.scene-car { animation: bob 0.5s steps(1) infinite alternate; }
-@keyframes bob { from { transform: translateY(0); } to { transform: translateY(-4px); } }
-.scene-cloud { animation: drift 40s linear infinite; }
-@keyframes drift { from { transform: translateX(-120px); } to { transform: translateX(110vw); } }
+/* The car drives across the open scene, left to right, and loops. */
+.car-drive { animation: drive 9s linear infinite; }
+@keyframes drive { from { transform: translateX(-125%); } to { transform: translateX(100vw); } }
+.scene-cloud { animation: drift 100s linear infinite; }
+@keyframes drift { from { transform: translateX(-320px); } to { transform: translateX(100vw); } }
 .scene-stars {
   width: 4px; height: 4px; background: var(--star);
   box-shadow: 80px 40px var(--star), 190px 90px var(--star), 310px 30px var(--star), 420px 120px var(--star), 560px 60px var(--star),
@@ -119,6 +124,28 @@ input[type='range'].tick::-moz-range-thumb { width: 18px; height: 22px; border-r
 @media (prefers-reduced-motion: reduce) {
   .card, .skeu { transition: none; }
   .card:hover { transform: none; }
-  .scene-road, .scene-car, .scene-cloud { animation: none; }
+  .scene-road, .car-drive, .scene-cloud { animation: none; }
+  .car-drive { transform: translateX(80%); }
   * { animation-duration: 0.001ms !important; }
+}
+
+/* Wheel spin: six rotation frames, one visible at a time, cycling fast. The body bobs one pixel on its suspension. */
+.wheel-frame { animation-duration: 0.42s; animation-timing-function: step-end; animation-iteration-count: infinite; }
+@keyframes wf0 { 0% { opacity: 1; } 16.667% { opacity: 0; } }
+.wf0 { animation-name: wf0; }
+@keyframes wf1 { 0% { opacity: 0; } 16.667% { opacity: 1; } 33.333% { opacity: 0; } }
+.wf1 { animation-name: wf1; }
+@keyframes wf2 { 0% { opacity: 0; } 33.333% { opacity: 1; } 50.000% { opacity: 0; } }
+.wf2 { animation-name: wf2; }
+@keyframes wf3 { 0% { opacity: 0; } 50.000% { opacity: 1; } 66.667% { opacity: 0; } }
+.wf3 { animation-name: wf3; }
+@keyframes wf4 { 0% { opacity: 0; } 66.667% { opacity: 1; } 83.333% { opacity: 0; } }
+.wf4 { animation-name: wf4; }
+@keyframes wf5 { 0% { opacity: 0; } 83.333% { opacity: 1; } }
+.wf5 { animation-name: wf5; }
+@keyframes carbob { from { transform: translateY(0); } to { transform: translateY(-1px); } }
+.car-body { animation: carbob 0.21s steps(1) infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  .wheel-frame, .car-body { animation: none; }
+  .wheel-frame:not(.wf0) { opacity: 0; }
 }

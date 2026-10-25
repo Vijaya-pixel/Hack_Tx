@@ -1,4 +1,4 @@
-# Round-Up
+# RoundGear
 
 A concept dashboard for **Toyota Financial Services**. It rounds everyday purchases up to the next dollar and puts the spare change toward the **principal** of the customer's car loan, then shows the months and interest saved.
 

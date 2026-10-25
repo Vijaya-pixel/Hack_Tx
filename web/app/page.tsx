@@ -21,9 +21,9 @@ const LINKS = [
 
 function HeroStat({ label, value }: { label: string; value?: string }) {
   return (
-    <div>
-      <p className="text-sm font-medium">{label}</p>
-      <div className="mt-2 rounded-xl bg-soft px-4 py-3 text-[15px] text-ink">{value ?? <span className="text-grey">…</span>}</div>
+    <div className="pix px-4 py-3">
+      <p className="label">{label}</p>
+      <p className="mt-1 text-[17px] font-medium text-ink">{value ?? <span className="text-grey">…</span>}</p>
     </div>
   );
 }
@@ -34,27 +34,29 @@ export default function Home() {
   const c = customer.data;
   return (
     <div className="space-y-24 md:space-y-32">
-      {/* Hero: photo, big headline, and a card of the loan's key numbers that overlaps the bottom edge */}
-      <section className="relative pb-24 md:pb-20">
-        <div className="scene-sky relative h-[500px] overflow-hidden border-[3px] border-edge shadow-[8px_8px_0_var(--edge)] md:h-[620px]">
+      {/* Hero: full-width pixel landscape under the nav, with the car driving across it (no box around it) */}
+      <section className="relative left-1/2 -mt-8 w-screen -translate-x-1/2">
+        <div className="scene-sky relative h-[600px] overflow-hidden md:h-[680px]">
           <PixelScene />
-          <div className="relative z-10 p-6 md:p-12">
-            <p className="label !text-ink">{c ? `Hi, ${c.name.split(' ')[0]}` : 'Welcome'}</p>
-            <h1 className="press mt-4 text-[24px] md:text-[50px]" style={{ textShadow: '4px 4px 0 var(--toyota)' }}>ROUND UP.<br />PAY OFF<br />SOONER.</h1>
+          <div className="relative z-10 mx-auto max-w-[1360px] px-4 pt-10 md:px-8 md:pt-14">
+            <p className="label !text-white/85">{c ? `Hi, ${c.name.split(' ')[0]}` : 'Welcome'}</p>
+            <h1 className="press mt-4 text-[24px] text-white md:text-[50px]" style={{ textShadow: '4px 4px 0 var(--toyota)' }}>ROUND UP.<br />PAY OFF<br />SOONER.</h1>
           </div>
-          <div className="scene-road absolute inset-x-0 bottom-0 h-24" />
-          <div className="scene-car absolute bottom-6 right-2 w-[78%] md:bottom-4 md:right-14 md:w-[46%]"><Car /></div>
-        </div>
-        <div className="absolute inset-x-4 bottom-0 border-[3px] border-edge bg-panel p-5 shadow-[6px_6px_0_var(--edge)] md:inset-x-12 md:p-6">
-          {customer.error && !c ? <ErrorNote message={customer.error} retry={customer.reload} /> : (
-            <div className="grid items-end gap-4 md:grid-cols-[repeat(4,1fr)_auto]">
-              <HeroStat label="Vehicle" value={c?.vehicle.replace(/^2024 Toyota /, '2024 ')} />
-              <HeroStat label="Loan balance" value={c ? usd(c.balance) : undefined} />
-              <HeroStat label="APR · months left" value={c ? `${c.apr}% · ${c.monthsRemaining} mo` : undefined} />
-              <HeroStat label="Monthly payment" value={c ? usd2(c.monthlyPayment) : undefined} />
-              <Link href="/plans" className="skeu rounded-full px-7 py-3.5 text-center text-sm font-semibold">See my plan</Link>
+          <div className="scene-road absolute inset-x-0 bottom-0 h-[88px]" />
+          <div className="absolute inset-x-0 bottom-[112px] z-20">
+            <div className="mx-auto max-w-[1360px] px-4 md:px-8">
+              {customer.error && !c ? <ErrorNote message={customer.error} retry={customer.reload} /> : (
+                <div className="grid gap-3 md:grid-cols-[repeat(4,1fr)_auto]">
+                  <HeroStat label="Vehicle" value={c?.vehicle.replace(/^2024 Toyota /, '2024 ')} />
+                  <HeroStat label="Loan balance" value={c ? usd(c.balance) : undefined} />
+                  <HeroStat label="APR · months left" value={c ? `${c.apr}% · ${c.monthsRemaining} mo` : undefined} />
+                  <HeroStat label="Monthly payment" value={c ? usd2(c.monthlyPayment) : undefined} />
+                  <Link href="/plans" className="skeu flex items-center justify-center px-8 py-4 text-center text-base font-semibold">See my plan</Link>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+          <div className="car-drive pointer-events-none absolute bottom-[30px] left-0 z-30 w-[82%] md:w-[40%]"><Car /></div>
         </div>
       </section>
 
@@ -102,11 +104,11 @@ export default function Home() {
       </section>
 
       {/* Closing band */}
-      <section className="border-[3px] border-edge bg-[#0b0b0b] px-6 py-16 text-center text-white shadow-[8px_8px_0_var(--toyota)] md:py-24">
+      <section className="pix !bg-[#0b0b0b] px-6 py-16 text-center text-white md:py-24">
         <h2 className="press text-xl leading-[1.4] md:text-4xl">READY TO PAY OFF SOONER?</h2>
         <p className="copy mx-auto mt-4 max-w-xl text-white/60">Pick how much extra you put in each week and watch the months fall away.</p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href="/plans" className="border-[3px] border-white bg-white px-7 py-3.5 text-sm font-semibold text-black shadow-[4px_4px_0_var(--toyota)] transition-transform hover:-translate-y-0.5">Get started</Link>
+          <Link href="/plans" className="skeu px-7 py-3.5 text-sm font-semibold">Get started</Link>
           <Link href="/live" className="rounded-full border border-white/25 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">Watch it live</Link>
         </div>
       </section>

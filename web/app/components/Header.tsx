@@ -23,11 +23,13 @@ export function Header({ name, feed, path }: { name?: string; feed: Feed | null;
       className={`${size} whitespace-nowrap transition-colors ${active(href) ? 'font-semibold text-ink underline decoration-toyota decoration-[3px] underline-offset-[10px]' : 'text-grey hover:text-ink'}`}>{label}</Link>
   );
   return (
-    <header className="border-b-[3px] border-edge bg-page">
+    <header className="dark sticky top-0 z-40 border-b-[3px] border-edge bg-page text-ink">
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-4 md:px-6">
         <div className="col-start-1 text-left">
-          <Link href="/" className="block"><p className="wordmark text-xs uppercase tracking-[0.12em] md:text-sm">Round·Up</p>
-          <p className="label mt-1 !text-toyota">Toyota Financial Services · Concept</p></Link>
+          <Link href="/" className="block" aria-label="RoundGear home">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/roundgear-logo.png" alt="RoundGear" width={900} height={153} className="h-9 w-auto md:h-11" />
+          </Link>
         </div>
         <nav aria-label="Sections" className="hidden items-center justify-center gap-8 md:col-start-2 md:flex xl:gap-12">
           {NAV.map((n) => link(n.href, n.label, 'text-lg xl:text-xl'))}

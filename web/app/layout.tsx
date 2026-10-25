@@ -9,7 +9,7 @@ const silkscreen = Silkscreen({ subsets: ['latin'], weight: ['400', '700'], vari
 const pressStart = Press_Start_2P({ subsets: ['latin'], weight: '400', variable: '--font-press-start', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: 'Round-Up · Concept for Toyota Financial Services',
+  title: 'RoundGear · Concept for Toyota Financial Services',
   description: 'Round up everyday purchases and put the spare change toward your car loan principal.',
 };
 

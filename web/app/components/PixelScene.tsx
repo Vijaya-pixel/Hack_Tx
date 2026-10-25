@@ -1,13 +1,21 @@
-// Decorative pixel sky for the Home hero: sun (or moon at night), stars at night, and a few drifting clouds.
-function Cloud({ top, delay, scale = 1 }: { top: string; delay: string; scale?: number }) {
+import { CLOUDS, FAR_RANGE, MH, MW, NEAR_RANGE } from './landscape';
+
+// The Home hero landscape: sky bands (from CSS), sun or moon, stars at night, drifting clouds, and two mountain ranges.
+function Mountains({ rects, className }: { rects: { x: number; y: number; h: number; fill: string }[]; className: string }) {
   return (
-    <div aria-hidden className="scene-cloud absolute left-0" style={{ top, animationDelay: delay, transform: `scale(${scale})` }}>
-      <div className="relative h-8 w-24">
-        <span className="absolute left-4 top-0 h-4 w-12 bg-white/70" />
-        <span className="absolute left-0 top-4 h-4 w-24 bg-white/70" />
-        <span className="absolute left-8 top-[-8px] h-4 w-8 bg-white/70" />
-      </div>
-    </div>
+    <svg aria-hidden viewBox={`0 0 ${MW} ${MH}`} shapeRendering="crispEdges" preserveAspectRatio="xMidYMax slice" className={`absolute inset-x-0 w-full ${className}`}>
+      {rects.map((r, i) => <rect key={i} x={r.x} y={r.y} width={1} height={r.h} fill={r.fill} />)}
+    </svg>
+  );
+}
+
+function Cloud({ n, top, delay, duration, width }: { n: number; top: string; delay: string; duration: string; width: number }) {
+  const c = CLOUDS[n];
+  return (
+    <svg aria-hidden viewBox={`0 0 ${c.w} ${c.h}`} shapeRendering="crispEdges" className="scene-cloud absolute left-0"
+      style={{ top, width, animationDelay: delay, animationDuration: duration }}>
+      {c.rects.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height={1} fill={r.fill} />)}
+    </svg>
   );
 }
 
@@ -15,10 +23,13 @@ export function PixelScene() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
       <div className="scene-stars absolute left-0 top-4" />
-      <span className="absolute right-[12%] top-[14%] h-14 w-14 border-[3px] border-edge" style={{ background: 'var(--sun)' }} />
-      <Cloud top="18%" delay="-6s" />
-      <Cloud top="34%" delay="-24s" scale={0.8} />
-      <Cloud top="10%" delay="-32s" scale={1.2} />
+      <span className="absolute right-[10%] top-[12%] h-16 w-16 border-[3px]" style={{ background: 'var(--sun)', borderColor: 'var(--sun-edge)' }} />
+      <Cloud n={0} top="8%" delay="-10s" duration="90s" width={230} />
+      <Cloud n={2} top="26%" delay="-55s" duration="130s" width={300} />
+      <Cloud n={1} top="40%" delay="-30s" duration="110s" width={170} />
+      <Cloud n={0} top="52%" delay="-75s" duration="100s" width={190} />
+      <Mountains rects={FAR_RANGE} className="bottom-[88px]" />
+      <Mountains rects={NEAR_RANGE} className="bottom-[88px]" />
     </div>
   );
 }

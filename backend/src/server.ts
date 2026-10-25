@@ -20,7 +20,7 @@ if (client) {
 const app = createApp({ store, storeReason, simulator: createSimulator(store), repo, snowflake: client, snowflakeReason, cortexModel: cortexModel() });
 const port = Number(process.env.PORT) || 4000;
 app.listen(port, () => {
-  console.log(`Round-Up API on http://localhost:${port}`);
+  console.log(`RoundGear API on http://localhost:${port}`);
   console.log(`  transactions: ${store.mode}${storeReason ? ` (${storeReason})` : ''}`);
   console.log(`  customer:     ${repo.source}${snowflakeReason ? ` (${snowflakeReason})` : ''}`);
   console.log(`  explanations: ${client ? 'Snowflake Cortex' : 'template'}`);
