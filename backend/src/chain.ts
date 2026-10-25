@@ -8,16 +8,21 @@ import { randomBytes } from 'node:crypto';
 import type { Chain, MemoCheck, SentMemo } from './types.ts';
 
 export function createSolanaChain(): Chain {
-  // Imported lazily so the server still starts if the solana folder is missing.
-  const libPromise = import('../../solana/lib.ts');
+  // Loaded on first use, not at startup, so the server runs even if solana/ has not been installed.
+  const load = async () => {
+    try { return await import('../../solana/lib.ts'); }
+    catch (err) {
+      throw new Error(`Solana helpers are not available. Run "npm install" in the solana/ folder. (${(err as Error).message})`);
+    }
+  };
   return {
     kind: 'solana-devnet',
     async signerKeys(count: number): Promise<string[]> {
-      const lib = await libPromise;
+      const lib = await load();
       return lib.loadWallets().slice(0, count).map((w) => w.keypair.publicKey.toBase58());
     },
     async sendMemo({ memo, count }: { memo: string; count: number }): Promise<SentMemo> {
-      const lib = await libPromise;
+      const lib = await load();
       const wallets = lib.loadWallets().slice(0, count);
       if (wallets.length < count) throw new Error(`Need ${count} wallets, found ${wallets.length}`);
       const keypairs = wallets.map((w) => w.keypair);
@@ -29,7 +34,7 @@ export function createSolanaChain(): Chain {
       };
     },
     async checkMemo({ signature, expectedMemo, requiredSigners }: { signature: string; expectedMemo: string; requiredSigners: string[] }): Promise<MemoCheck> {
-      const lib = await libPromise;
+      const lib = await load();
       return lib.checkMemoOnChain({ signature, expectedMemo, requiredSigners });
     },
     explorer: (signature: string) => `https://explorer.solana.com/tx/${signature}?cluster=devnet`,

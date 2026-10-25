@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createFakeChain, createMockChain } from '../src/chain.ts';
+import { createFakeChain, createMockChain, createSolanaChain } from '../src/chain.ts';
 import { canonical, fingerprint } from '../src/fingerprint.ts';
 
 describe('fingerprints', () => {
@@ -10,10 +10,22 @@ describe('fingerprints', () => {
     assert.equal(canonical({ z: [1, { y: 2, x: 1 }] }), '{"z":[1,{"x":1,"y":2}]}');
   });
 
-  test('matches the fingerprint function the Solana scripts use', async () => {
-    const solana = await import('../../solana/lib.ts');
+  test('matches the fingerprint function the Solana scripts use', async (t) => {
+    const solana = await import('../../solana/lib.ts').catch(() => null);
+    if (!solana) { t.skip('solana/ is not installed (run npm install there to enable this check)'); return; }
     const sample = { type: 'advice', id: 'abc', nested: { n: [3, 2, 1], s: 'x' } };
     assert.equal(fingerprint(sample), solana.fingerprint(sample));
+  });
+});
+
+describe('real chain adapter', () => {
+  test('creating it does not load Solana, and using it without solana/ installed gives a clear error', async (t) => {
+    const chain = createSolanaChain(); // must not throw or crash at creation
+    assert.equal(chain.kind, 'solana-devnet');
+    assert.equal(chain.explorer('abc'), 'https://explorer.solana.com/tx/abc?cluster=devnet');
+    const installed = await import('../../solana/lib.ts').then(() => true, () => false);
+    if (installed) { t.diagnostic('solana/ is installed: skipping the missing-install check'); return; }
+    await assert.rejects(() => chain.signerKeys(1), /npm install" in the solana\/ folder/);
   });
 });
 

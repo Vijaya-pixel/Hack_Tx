@@ -6,7 +6,7 @@ The app's own routes and tables go in next.
 
     npm install
     npm run typecheck     # strict TypeScript
-    npm test              # 15 tests, no network needed
+    npm test              # 16 tests, no network needed
     npm start             # reads backend/.env automatically
 
 ## Your keys go in `backend/.env`
@@ -26,6 +26,9 @@ Check it: `curl localhost:8787/api/health` should return `"database":"connected"
 | `src/fingerprint.ts` | Stable SHA-256 fingerprint of any JSON (same as `solana/lib.ts`) |
 
 Env: `DATABASE_URL`, `PGSSL`, `PORT` (8787), `CHAIN=mock` (UI work only; never for the real demo).
+
+The server starts without Solana. To use the real chain, also run `npm install` in `../solana` (the backend loads
+those helpers only when it first needs them, and says so clearly if they are missing).
 
 ## Not verified here
 The TimescaleDB-only steps (`create_hypertable`, `time_bucket`) can't run in the offline test database,
